@@ -6,14 +6,13 @@ import debounce from '../utils/debounce';
 import { 
   Search, Filter, Tag, Clock, DollarSign, User, 
   ChevronLeft, ChevronRight, Image as ImageIcon, 
-  ArrowRight, CheckCircle, XCircle, AlertCircle, ShoppingBag 
+  ArrowRight, CheckCircle, XCircle, AlertCircle, Calendar 
 } from 'lucide-react';
 
 const Home = () => {
   const { user, loading } = useAuth();
   const [searchParams] = useSearchParams();
   
-  // 1. Separate Input State vs Search State
   const initialSearch = searchParams.get('search') || '';
   const [inputValue, setInputValue] = useState(initialSearch);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
@@ -21,18 +20,27 @@ const Home = () => {
   const [items, setItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(true);
   const [category, setCategory] = useState('');
-  const [status, setStatus] = useState('active');
+  
+  // Default to 'active' which backend now interprets as Active + Upcoming
+  const [status, setStatus] = useState('active'); 
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
   
-  // Update state if URL changes
+  const [, setTick] = useState(0);
+
   useEffect(() => {
     const query = searchParams.get('search') || '';
     setInputValue(query);
     setSearchTerm(query);
   }, [searchParams]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -57,7 +65,6 @@ const Home = () => {
     }
   }, [currentPage, searchTerm, category, status]);
   
-  // 2. Debounced update
   const debouncedUpdate = useCallback(
     debounce((value) => {
       setSearchTerm(value);
@@ -66,7 +73,6 @@ const Home = () => {
     []
   );
 
-  // 3. Handle Input Change
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInputValue(value);
@@ -74,14 +80,10 @@ const Home = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchItems();
-    }
+    if (user) fetchItems();
   }, [user, fetchItems]);
 
-  if (!loading && !user) {
-    return <Navigate to="/login" />;
-  }
+  if (!loading && !user) return <Navigate to="/login" />;
 
   const handleCategoryChange = (e) => {
     setCategory(e.target.value);
@@ -93,11 +95,26 @@ const Home = () => {
     setCurrentPage(1);
   };
 
-  const formatTimeLeft = (endTime) => {
+  // --- DYNAMIC TIMER LOGIC ---
+  const formatTimer = (item) => {
     const now = new Date();
-    const end = new Date(endTime);
-    const diff = end - now;
+    const start = item.startTime ? new Date(item.startTime) : new Date();
+    const end = new Date(item.endTime);
+    
+    // UPCOMING: Check STRICTLY against time
+    if (now < start) {
+        const diff = start - now;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        if (days > 0) return `Starts: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+        return `Starts: ${hours}h ${minutes}m ${seconds}s`;
+    }
 
+    // ACTIVE:
+    const diff = end - now;
     if (diff <= 0) return 'Auction ended';
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -106,15 +123,25 @@ const Home = () => {
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
     if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s left`;
-    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s left`;
-    return `${minutes}m ${seconds}s left`;
+    return `${hours}h ${minutes}m ${seconds}s left`;
   };
 
+  // --- STRICT BADGE LOGIC ---
   const getStatusBadge = (item) => {
     const now = new Date();
-    const endTime = new Date(item.endTime);
+    const start = new Date(item.startTime);
+    const end = new Date(item.endTime);
     
-    if (item.status === 'sold') {
+    // 1. Check if actually Upcoming (Future Start)
+    if (now < start) {
+        return (
+          <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-blue-200 shadow-sm backdrop-blur-md">
+            <Calendar className="w-3 h-3" /> Upcoming
+          </span>
+        );
+    } 
+    // 2. Check if Sold/Closed/Expired
+    else if (item.status === 'sold') {
       return (
         <span className="flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-green-200 shadow-sm backdrop-blur-md">
           <CheckCircle className="w-3 h-3" /> Sold
@@ -126,15 +153,17 @@ const Home = () => {
           <XCircle className="w-3 h-3" /> Closed
         </span>
       );
-    } else if (endTime <= now) {
+    } else if (end <= now || item.status === 'expired') {
       return (
         <span className="flex items-center gap-1 bg-red-100 text-red-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-red-200 shadow-sm backdrop-blur-md">
           <Clock className="w-3 h-3" /> Expired
         </span>
       );
-    } else {
+    } 
+    // 3. Otherwise, it is Active
+    else {
       return (
-        <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-blue-200 shadow-sm backdrop-blur-md">
+        <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-sm backdrop-blur-md">
           <AlertCircle className="w-3 h-3" /> Active
         </span>
       );
@@ -201,7 +230,7 @@ const Home = () => {
                 </select>
               </div>
 
-              <div className="relative w-full md:w-40">
+              <div className="relative w-full md:w-48">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Filter className="h-4 w-4 text-gray-500" />
                 </div>
@@ -210,7 +239,7 @@ const Home = () => {
                   onChange={handleStatusChange}
                   className="block w-full pl-9 pr-8 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg bg-gray-50 hover:bg-white shadow-sm cursor-pointer transition-colors"
                 >
-                  <option value="active">Active</option>
+                  <option value="active">Active & Upcoming</option>
                   <option value="ended">Ended</option>
                   <option value="">All Status</option>
                 </select>
@@ -227,7 +256,6 @@ const Home = () => {
           </div>
         ) : (
           <>
-            {/* Items Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {items.length === 0 ? (
                 <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-dashed border-gray-300 text-center animate-fadeIn">
@@ -261,7 +289,7 @@ const Home = () => {
                         </div>
                       )}
                       
-                      {/* Floating Badges */}
+                      {/* Floating Badges - DYNAMICALLY SET */}
                       <div className="absolute top-3 right-3 z-10">
                         {getStatusBadge(item)}
                       </div>
@@ -270,7 +298,6 @@ const Home = () => {
                         {item.category}
                       </div>
                       
-                      {/* Hover Overlay */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                     </div>
 
@@ -286,10 +313,11 @@ const Home = () => {
                       </div>
 
                       <div className="mt-auto space-y-4">
-                        {/* Price & Time Row */}
                         <div className="flex justify-between items-end border-t border-gray-100 pt-4">
                           <div>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Current Bid</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+                                {new Date() < new Date(item.startTime) ? 'Starting Bid' : 'Current Bid'}
+                            </p>
                             <div className="flex items-center gap-1 text-indigo-600 font-extrabold text-xl">
                               <DollarSign className="w-5 h-5" strokeWidth={3} />
                               {item.currentBid || item.basePrice}
@@ -297,16 +325,19 @@ const Home = () => {
                           </div>
                           <div className="text-right">
                              <div className={`flex items-center justify-end gap-1 text-sm font-bold ${
-                                new Date(item.endTime) < new Date() ? 'text-gray-400' : 'text-amber-600'
+                                new Date() < new Date(item.startTime)
+                                  ? 'text-blue-600' 
+                                  : new Date(item.endTime) < new Date() ? 'text-gray-400' : 'text-amber-600'
                              }`}>
                                <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
-                               {formatTimeLeft(item.endTime)}
+                               {formatTimer(item)}
                              </div>
-                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Time Left</p>
+                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                                {new Date() < new Date(item.startTime) ? 'Starts In' : 'Time Left'}
+                             </p>
                           </div>
                         </div>
 
-                        {/* Footer Row */}
                         <div className="flex items-center justify-between pt-2">
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">

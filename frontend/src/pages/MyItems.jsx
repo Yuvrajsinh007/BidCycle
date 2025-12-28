@@ -12,7 +12,7 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle, 
-  MoreVertical,
+  Calendar,
   Gavel
 } from 'lucide-react';
 
@@ -20,16 +20,14 @@ const MyItems = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all'); // all, active, ended
+  const [filter, setFilter] = useState('active'); // Default to 'active' (Active + Upcoming)
   const [searchQuery, setSearchQuery] = useState('');
   
-  // LIVE TIMER STATE
+  // LIVE TIMER STATE: Triggers re-render every second to update countdowns and statuses
   const [, setTick] = useState(0);
 
   useEffect(() => {
     fetchMyItems();
-    
-    // Timer interval
     const timer = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -55,34 +53,35 @@ const MyItems = () => {
     try {
       await api.delete(`/seller/items/${itemId}`);
       setItems(items.filter(item => item._id !== itemId));
-      setError(''); // Clear any previous errors on success
+      setError(''); 
     } catch (error) {
-      // FIX 1: Show specific error message from backend (e.g., "Cannot delete item with bids")
       setError(error.response?.data?.message || 'Failed to delete item');
-      
-      // Auto-hide error after 5 seconds
       setTimeout(() => setError(''), 5000);
     }
   };
 
-  const filteredItems = items.filter(item => {
-    const isEnded = new Date(item.endTime) < new Date();
-    const matchesFilter = 
-      filter === 'all' ? true :
-      filter === 'active' ? !isEnded :
-      filter === 'ended' ? isEnded : true;
-    
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return matchesFilter && matchesSearch;
-  });
-
-  const formatTimeLeft = (endTime) => {
+  // --- UPDATED TIMER LOGIC ---
+  // Calculates string based on whether we are counting down to Start or End
+  const formatTimer = (item) => {
     const now = new Date();
-    const end = new Date(endTime);
-    const diff = end - now;
+    const start = item.startTime ? new Date(item.startTime) : new Date(); 
+    const end = new Date(item.endTime);
 
-    if (diff <= 0) return 'Ended';
+    // 1. UPCOMING LOGIC (Count down to Start)
+    if (now < start) {
+        const diff = start - now;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        return `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    // 2. ACTIVE LOGIC (Count down to End)
+    const diff = end - now;
+    if (diff <= 0) return '00s';
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -92,6 +91,27 @@ const MyItems = () => {
     if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s`;
     return `${hours}h ${minutes}m ${seconds}s`;
   };
+
+  const filteredItems = items.filter(item => {
+    // Strictly use Time comparisons for filtering logic to match the visuals
+    const now = new Date();
+    const start = new Date(item.startTime);
+    const end = new Date(item.endTime);
+
+    const isEnded = ['sold', 'expired', 'closed'].includes(item.status) || now >= end;
+    const isUpcoming = now < start; 
+    const isActive = !isUpcoming && !isEnded; // Specifically currently running
+
+    // Filter Logic
+    let matchesFilter = false;
+    if (filter === 'all') matchesFilter = true;
+    else if (filter === 'active') matchesFilter = isActive || isUpcoming; // Active tab shows BOTH Active & Upcoming
+    else if (filter === 'ended') matchesFilter = isEnded;
+    
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesFilter && matchesSearch;
+  });
 
   if (loading) {
     return (
@@ -131,7 +151,7 @@ const MyItems = () => {
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Active Auctions</p>
+              <p className="text-sm font-medium text-gray-500">Active & Upcoming</p>
               <p className="text-2xl font-bold text-green-600">
                 {items.filter(i => new Date(i.endTime) > new Date()).length}
               </p>
@@ -168,7 +188,7 @@ const MyItems = () => {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {type}
+                  {type === 'active' ? 'Active & Upcoming' : type}
                 </button>
               ))}
             </div>
@@ -215,7 +235,17 @@ const MyItems = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredItems.map((item) => {
-              const isEnded = new Date(item.endTime) < new Date();
+              const now = new Date();
+              const start = new Date(item.startTime);
+              const end = new Date(item.endTime);
+
+              // STRICT TIME-BASED STATUS CHECKS (Reactive to live ticker)
+              const isEnded = ['sold', 'expired', 'closed'].includes(item.status) || now >= end;
+              const isUpcoming = now < start;
+              
+              // Only consider it "Active" if it's not ended and strictly past the start time
+              const isActive = !isUpcoming && !isEnded;
+
               return (
                 <div key={item._id} className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
                   {/* Image Container */}
@@ -232,23 +262,21 @@ const MyItems = () => {
                       </div>
                     )}
                     
-                    {/* Status Badge */}
+                    {/* Status Badge - VISUALLY SEPARATE */}
                     <div className="absolute top-3 right-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-md ${
-                        isEnded 
-                          ? 'bg-gray-900/80 text-white' 
-                          : 'bg-green-500/90 text-white'
-                      }`}>
-                        {isEnded ? (
-                            <>
-                                <XCircle className="w-3 h-3" /> Ended
-                            </>
-                        ) : (
-                            <>
-                                <Clock className="w-3 h-3" /> {formatTimeLeft(item.endTime)}
-                            </>
-                        )}
-                      </span>
+                      {isUpcoming ? (
+                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/90 text-white backdrop-blur-md shadow-sm">
+                            <Calendar className="w-3 h-3" /> Upcoming
+                         </span>
+                      ) : isEnded ? (
+                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-900/80 text-white backdrop-blur-md">
+                            <XCircle className="w-3 h-3" /> Ended
+                         </span>
+                      ) : (
+                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white backdrop-blur-md">
+                            <Clock className="w-3 h-3" /> Active
+                         </span>
+                      )}
                     </div>
                   </div>
 
@@ -265,18 +293,40 @@ const MyItems = () => {
                     </p>
 
                     <div className="mt-auto pt-4 border-t border-gray-50">
-                        <div className="flex justify-between items-end mb-4">
-                             <div>
-                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Current Bid</p>
-                                <p className="text-xl font-bold text-indigo-600">
-                                    ${item.currentBid || item.basePrice}
-                                </p>
-                             </div>
-                             <div className="text-right">
-                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Bids</p>
-                                <p className="text-lg font-semibold text-gray-700">{item.bidCount || 0}</p>
-                             </div>
-                        </div>
+                        
+                        {/* DYNAMIC CONTENT based on status */}
+                        {isUpcoming ? (
+                           <div className="mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                              <p className="text-xs text-blue-600 font-bold uppercase mb-1">Starts On</p>
+                              <p className="text-sm font-semibold text-gray-800">
+                                {start.toLocaleDateString()} at {start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </p>
+                              <div className="flex items-center gap-1 mt-2 text-xs font-bold text-blue-600">
+                                <Clock className="w-3 h-3" /> Starts in {formatTimer(item)}
+                              </div>
+                           </div>
+                        ) : (
+                           // ACTIVE/ENDED Display
+                           <div className="mb-4">
+                               <div className="flex justify-between items-end mb-2">
+                                   <div>
+                                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Current Bid</p>
+                                      <p className="text-xl font-bold text-indigo-600">
+                                          ${item.currentBid || item.basePrice}
+                                      </p>
+                                   </div>
+                                   <div className="text-right">
+                                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Bids</p>
+                                      <p className="text-lg font-semibold text-gray-700">{item.bidCount || 0}</p>
+                                   </div>
+                               </div>
+                               {!isEnded && (
+                                   <div className="flex items-center justify-end gap-1 text-xs font-bold text-amber-600">
+                                      <Clock className="w-3 h-3" /> Ends in {formatTimer(item)}
+                                   </div>
+                               )}
+                           </div>
+                        )}
 
                         {/* Actions Grid */}
                         <div className="grid grid-cols-2 gap-2">
@@ -296,7 +346,6 @@ const MyItems = () => {
                                 </Link>
                             ) : (
                                 <Link
-                                    // FIX 2: Point to Item Detail page to view bids, since no dedicated seller bid page exists
                                     to={`/item/${item._id}`} 
                                     className="flex items-center justify-center gap-1.5 px-3 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
                                 >

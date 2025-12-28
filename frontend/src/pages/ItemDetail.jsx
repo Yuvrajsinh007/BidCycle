@@ -12,11 +12,10 @@ import {
   Trophy, 
   Gavel, 
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
   ShieldAlert,
   History,
-  Info
+  Info,
+  Calendar
 } from 'lucide-react';
 
 const ItemDetail = () => {
@@ -32,14 +31,21 @@ const ItemDetail = () => {
   const [success, setSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [, setTick] = useState(0); // State to force re-render every second
 
   useEffect(() => {
     fetchItemDetails();
+    
+    // Live Timer Interval
+    const timer = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
   }, [id]);
 
   const fetchItemDetails = async () => {
     try {
-      setLoading(true);
+      // Don't set loading true on background refreshes if data exists
+      if (!item) setLoading(true); 
+      
       const [itemResponse, bidsResponse] = await Promise.all([
         api.get(`/items/${id}`),
         api.get(`/items/${id}/bids`),
@@ -65,6 +71,11 @@ const ItemDetail = () => {
       return;
     }
 
+    if (item.status === 'upcoming') {
+        setError("Auction has not started yet.");
+        return;
+    }
+
     const amount = parseFloat(bidAmount);
     if (!amount || amount <= 0) {
       setError("Please enter a valid bid amount");
@@ -82,7 +93,7 @@ const ItemDetail = () => {
       const response = await api.post(`/bids/${id}`, { amount });
       setSuccess(response.data.message || "Bid placed successfully!");
       setBidAmount("");
-      fetchItemDetails();
+      fetchItemDetails(); // Refresh data
     } catch (error) {
       setError(error.response?.data?.message || "Failed to place bid");
     } finally {
@@ -90,31 +101,37 @@ const ItemDetail = () => {
     }
   };
 
-  const formatTimeLeft = (endTime) => {
-    const now = new Date();
-    const end = new Date(endTime);
-    const diff = end - now;
+  // Logic for Status
+  const isUpcoming = item && item.status === 'upcoming';
+  const isAuctionEnded = item && (new Date(item.endTime) < new Date() || item.status === 'sold' || item.status === 'expired' || item.status === 'closed');
+  const isAuctionActive = item && item.status === 'active' && !isAuctionEnded && !isUpcoming;
 
-    if (diff <= 0) return "Auction ended";
+  // Logic for winning/losing
+  const didUserBid = user && bids.some(bid => bid.bidder._id === user._id || bid.bidder === user._id);
+  const isWinner = user && item?.winner && (item.winner._id === user._id || item.winner === user._id);
+  const isLoser = isAuctionEnded && didUserBid && !isWinner;
+
+  // Unified Timer Function
+  const formatTimer = () => {
+    if (!item) return "";
+    const now = new Date();
+    
+    // If upcoming, count down to Start Time. Else, count to End Time.
+    const targetDate = isUpcoming ? new Date(item.startTime) : new Date(item.endTime);
+    const diff = targetDate - now;
+
+    if (diff <= 0) {
+        return isUpcoming ? "Starting..." : "Auction ended";
+    }
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-    if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s left`;
-    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s left`;
-    return `${minutes}m ${seconds}s left`;
+    if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    return `${hours}h ${minutes}m ${seconds}s`;
   };
-
-  const isAuctionEnded = item && (new Date(item.endTime) < new Date() || item.status === 'sold' || item.status === 'expired');
-  const isAuctionActive = item && item.status === 'active' && !isAuctionEnded;
-  const canBid = user && isAuctionActive && user.role === "Buyer" && !user.isBanned;
-  
-  // Logic for winning/losing
-  const didUserBid = user && bids.some(bid => bid.bidder._id === user._id || bid.bidder === user._id);
-  const isWinner = user && item?.winner && (item.winner._id === user._id || item.winner === user._id);
-  const isLoser = isAuctionEnded && didUserBid && !isWinner;
 
   if (loading) {
     return (
@@ -193,15 +210,19 @@ const ItemDetail = () => {
                   />
                   {/* Status Badge Overlay */}
                   <div className="absolute top-4 right-4">
-                     {isAuctionEnded ? (
-                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-900/80 text-white backdrop-blur-md">
-                           Auction Ended
+                      {isUpcoming ? (
+                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/90 text-white backdrop-blur-md shadow-sm">
+                            <Calendar className="w-3 h-3" /> Upcoming
                          </span>
-                     ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white backdrop-blur-md">
-                           Live Auction
-                        </span>
-                     )}
+                      ) : isAuctionEnded ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-900/80 text-white backdrop-blur-md">
+                           Auction Ended
+                          </span>
+                      ) : (
+                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white backdrop-blur-md animate-pulse">
+                            <Clock className="w-3 h-3" /> Live Auction
+                         </span>
+                      )}
                   </div>
                 </>
               ) : (
@@ -235,7 +256,7 @@ const ItemDetail = () => {
               </div>
             )}
             
-            {/* Description Section for Mobile (order changes on desktop) */}
+            {/* Description Section for Mobile */}
             <div className="lg:hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                  <Info className="w-5 h-5 text-indigo-600" /> Description
@@ -266,7 +287,9 @@ const ItemDetail = () => {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                <div className="flex flex-wrap items-end gap-x-8 gap-y-4 mb-6">
                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">Current Price</p>
+                    <p className="text-sm font-medium text-gray-500 mb-1">
+                        {isUpcoming ? "Starting Bid" : "Current Price"}
+                    </p>
                     <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-extrabold text-indigo-600">
                             ${item.currentBid || item.basePrice}
@@ -280,10 +303,14 @@ const ItemDetail = () => {
                  </div>
                  
                  <div className="pl-6 border-l border-gray-100">
-                    <p className="text-sm font-medium text-gray-500 mb-1">Time Remaining</p>
-                    <div className={`flex items-center gap-2 font-bold text-lg ${isAuctionEnded ? "text-red-500" : "text-gray-800"}`}>
+                    <p className="text-sm font-medium text-gray-500 mb-1">
+                        {isUpcoming ? "Starts In" : isAuctionEnded ? "Status" : "Ends In"}
+                    </p>
+                    <div className={`flex items-center gap-2 font-bold text-lg ${
+                        isUpcoming ? "text-blue-600" : isAuctionEnded ? "text-red-500" : "text-gray-800"
+                    }`}>
                         <Clock className="w-5 h-5" />
-                        {formatTimeLeft(item.endTime)}
+                        {formatTimer()}
                     </div>
                  </div>
 
@@ -296,77 +323,90 @@ const ItemDetail = () => {
                </div>
 
                {/* Bidding Action Area */}
-               {isAuctionActive && (
+               {isUpcoming ? (
+                  <div className="pt-6 border-t border-gray-100">
+                     <div className="text-center py-6 bg-blue-50 rounded-xl border border-blue-100">
+                         <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                         <h3 className="text-blue-900 font-bold text-lg">Coming Soon</h3>
+                         <p className="text-blue-700">
+                            This auction is scheduled to start on <br/>
+                            <span className="font-semibold text-blue-900">
+                                {new Date(item.startTime).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}
+                            </span>
+                         </p>
+                     </div>
+                  </div>
+               ) : isAuctionActive ? (
                  <div className="pt-6 border-t border-gray-100">
-                    {!user ? (
-                        <div className="text-center py-4 bg-gray-50 rounded-xl border border-gray-200 border-dashed">
-                             <p className="text-gray-600 mb-3 font-medium">Sign in to participate in this auction</p>
-                             <button
-                                onClick={() => navigate("/login")}
-                                className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-sm"
-                            >
-                                Login to Bid
-                            </button>
-                        </div>
-                    ) : user.isBanned ? (
-                        <div className="bg-red-50 p-4 rounded-xl flex items-center gap-3 text-red-700 border border-red-100">
-                             <ShieldAlert className="w-6 h-6 flex-shrink-0" />
-                             <p className="font-medium">Your account is suspended. You cannot place bids.</p>
-                        </div>
-                    ) : user.role !== 'Buyer' ? (
-                         <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-3 text-gray-600 border border-gray-200">
-                             <User className="w-5 h-5 flex-shrink-0" />
-                             <p className="font-medium">Registered as {user.role}. Only Buyer accounts can bid.</p>
-                        </div>
-                    ) : (
-                        <>
-                           {error && (
-                                <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm font-medium rounded-lg flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4" /> {error}
-                                </div>
-                           )}
-                           {success && (
-                                <div className="mb-4 p-3 bg-green-50 text-green-700 text-sm font-medium rounded-lg flex items-center gap-2">
-                                    <CheckCircle2 className="w-4 h-4" /> {success}
-                                </div>
-                           )}
-                           
-                           <form onSubmit={handleBid} className="flex flex-col sm:flex-row gap-3">
-                                <div className="relative flex-grow">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <DollarSign className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <input
-                                        type="number"
-                                        value={bidAmount}
-                                        onChange={(e) => setBidAmount(e.target.value)}
-                                        min={item.currentBid ? item.currentBid + 1 : item.basePrice + 1}
-                                        step="0.01"
-                                        required
-                                        disabled={submitting}
-                                        placeholder={`Enter $${item.currentBid ? item.currentBid + 1 : item.basePrice + 1} or more`}
-                                        className="block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-95 flex items-center justify-center gap-2"
-                                >
-                                    {submitting ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <>Place Bid <Gavel className="w-4 h-4" /></>
-                                    )}
-                                </button>
-                           </form>
-                           <p className="text-xs text-gray-400 mt-2 text-center sm:text-left">
-                               By placing a bid, you agree to the auction terms and conditions.
-                           </p>
-                        </>
-                    )}
+                   {!user ? (
+                       <div className="text-center py-4 bg-gray-50 rounded-xl border border-gray-200 border-dashed">
+                            <p className="text-gray-600 mb-3 font-medium">Sign in to participate in this auction</p>
+                            <button
+                               onClick={() => navigate("/login")}
+                               className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-sm"
+                           >
+                               Login to Bid
+                           </button>
+                       </div>
+                   ) : user.isBanned ? (
+                       <div className="bg-red-50 p-4 rounded-xl flex items-center gap-3 text-red-700 border border-red-100">
+                            <ShieldAlert className="w-6 h-6 flex-shrink-0" />
+                            <p className="font-medium">Your account is suspended. You cannot place bids.</p>
+                       </div>
+                   ) : user.role !== 'Buyer' ? (
+                        <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-3 text-gray-600 border border-gray-200">
+                            <User className="w-5 h-5 flex-shrink-0" />
+                            <p className="font-medium">Registered as {user.role}. Only Buyer accounts can bid.</p>
+                       </div>
+                   ) : (
+                       <>
+                          {error && (
+                               <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm font-medium rounded-lg flex items-center gap-2">
+                                   <AlertCircle className="w-4 h-4" /> {error}
+                               </div>
+                          )}
+                          {success && (
+                               <div className="mb-4 p-3 bg-green-50 text-green-700 text-sm font-medium rounded-lg flex items-center gap-2">
+                                   <CheckCircle2 className="w-4 h-4" /> {success}
+                               </div>
+                          )}
+                          
+                          <form onSubmit={handleBid} className="flex flex-col sm:flex-row gap-3">
+                               <div className="relative flex-grow">
+                                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                       <DollarSign className="h-5 w-5 text-gray-400" />
+                                   </div>
+                                   <input
+                                       type="number"
+                                       value={bidAmount}
+                                       onChange={(e) => setBidAmount(e.target.value)}
+                                       min={item.currentBid ? item.currentBid + 1 : item.basePrice + 1}
+                                       step="0.01"
+                                       required
+                                       disabled={submitting}
+                                       placeholder={`Enter $${item.currentBid ? item.currentBid + 1 : item.basePrice + 1} or more`}
+                                       className="block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
+                                   />
+                               </div>
+                               <button
+                                   type="submit"
+                                   disabled={submitting}
+                                   className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-95 flex items-center justify-center gap-2"
+                               >
+                                   {submitting ? (
+                                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                   ) : (
+                                       <>Place Bid <Gavel className="w-4 h-4" /></>
+                                   )}
+                               </button>
+                          </form>
+                          <p className="text-xs text-gray-400 mt-2 text-center sm:text-left">
+                              By placing a bid, you agree to the auction terms and conditions.
+                          </p>
+                       </>
+                   )}
                  </div>
-               )}
+               ) : null}
 
                {/* Auction Ended Status */}
                {isAuctionEnded && (

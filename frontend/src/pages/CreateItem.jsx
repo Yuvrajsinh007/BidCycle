@@ -25,9 +25,12 @@ const CreateItem = () => {
     basePrice: "",
     auctionDuration: "24",
     customEndTime: "",
+    customStartTime: "", // Added for scheduling
   });
   
-  const [durationType, setDurationType] = useState("fixed");
+  const [scheduleType, setScheduleType] = useState("immediate"); // 'immediate' or 'scheduled'
+  const [durationType, setDurationType] = useState("fixed"); // 'fixed' or 'custom'
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
@@ -108,14 +111,30 @@ const CreateItem = () => {
       data.append("description", formData.description);
       data.append("category", formData.category);
       data.append("basePrice", formData.basePrice);
+      data.append("scheduleType", scheduleType); // Send schedule type
 
+      // 1. Handle Start Time
+      if (scheduleType === 'scheduled') {
+        if (!formData.customStartTime) throw new Error("Please select a start time.");
+        const startTime = new Date(formData.customStartTime).getTime();
+        if (startTime <= Date.now()) {
+             throw new Error("Start time must be in the future.");
+        }
+        data.append("customStartTime", formData.customStartTime);
+      }
+
+      // 2. Handle Duration / End Time
       if (durationType === 'fixed') {
         data.append("auctionDuration", formData.auctionDuration);
       } else {
-        const selectedTime = new Date(formData.customEndTime).getTime();
-        const now = new Date().getTime();
-        if (selectedTime <= now) {
-          throw new Error("End time must be in the future");
+        if (!formData.customEndTime) throw new Error("Please select an end time.");
+        const endTime = new Date(formData.customEndTime).getTime();
+        const startTime = scheduleType === 'scheduled' 
+            ? new Date(formData.customStartTime).getTime() 
+            : Date.now();
+            
+        if (endTime <= startTime) {
+          throw new Error("End time must be after the start time.");
         }
         data.append("customEndTime", formData.customEndTime);
       }
@@ -124,8 +143,12 @@ const CreateItem = () => {
         data.append("images", file);
       });
 
+      // FIX: Removed manual 'Content-Type' header to prevent "Unexpected end of form"
+      // await api.post("/seller/items", data, {
+      //   headers: { "Content-Type": "multipart/form-data" },
+      // });
       await api.post("/seller/items", data, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": undefined }, // This is the fix
       });
 
       navigate("/my-items");
@@ -139,7 +162,7 @@ const CreateItem = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto"> {/* Changed max-w-4xl to max-w-5xl for wider layout */}
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -169,10 +192,10 @@ const CreateItem = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6"> {/* Changed grid cols to 12 for finer control */}
             
-            {/* Left Column - Main Details */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* Left Column - Main Details (Span 7 columns) */}
+            <div className="lg:col-span-7 space-y-6">
               
               {/* Basic Info Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
@@ -324,8 +347,8 @@ const CreateItem = () => {
               </div>
             </div>
 
-            {/* Right Column - Settings */}
-            <div className="space-y-6">
+            {/* Right Column - Settings (Span 5 columns) */}
+            <div className="lg:col-span-5 space-y-6">
               
               {/* Pricing Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -360,78 +383,128 @@ const CreateItem = () => {
                 </div>
               </div>
 
-              {/* Duration Card */}
+              {/* TIMING CONFIGURATION CARD */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900">Duration</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Timing</h2>
                 </div>
 
-                <div className="space-y-4">
-                  <label className="block text-sm font-medium text-gray-700">Auction Type</label>
-                  <div className="grid grid-cols-2 gap-3 p-1 bg-gray-100 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setDurationType('fixed')}
-                      className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                        durationType === 'fixed'
-                          ? 'bg-white text-indigo-600 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <Clock className="w-4 h-4" /> Fixed
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDurationType('custom')}
-                      className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                        durationType === 'custom'
-                          ? 'bg-white text-indigo-600 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <Calendar className="w-4 h-4" /> Custom
-                    </button>
+                <div className="space-y-5">
+                  
+                  {/* 1. Start Time Section */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">When to start?</label>
+                    <div className="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100 mb-3 w-full">
+                        <button
+                          type="button"
+                          onClick={() => setScheduleType('immediate')}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                            scheduleType === 'immediate'
+                              ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-gray-200'
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Clock className="w-4 h-4" /> Immediate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setScheduleType('scheduled')}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                            scheduleType === 'scheduled'
+                              ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-gray-200'
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Calendar className="w-4 h-4" /> Schedule
+                        </button>
+                    </div>
+                    
+                    {scheduleType === 'scheduled' && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Start Date & Time</label>
+                          <input
+                            type="datetime-local"
+                            name="customStartTime"
+                            value={formData.customStartTime}
+                            onChange={handleChange}
+                            min={new Date().toISOString().slice(0, 16)}
+                            className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none bg-white text-sm" // Increased py to match End Date
+                          />
+                        </div>
+                    )}
                   </div>
 
-                  <div className="pt-2">
-                    {durationType === 'fixed' ? (
-                      <div className="relative">
-                        <select
-                          name="auctionDuration"
-                          value={formData.auctionDuration}
-                          onChange={handleChange}
-                          className="block w-full pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none bg-gray-50 focus:bg-white appearance-none cursor-pointer"
-                        >
-                          <option value="1">1 Hour</option>
-                          <option value="6">6 Hours</option>
-                          <option value="12">12 Hours</option>
-                          <option value="24">1 Day</option>
-                          <option value="48">2 Days</option>
-                          <option value="72">3 Days</option>
-                          <option value="168">1 Week</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                          </svg>
+                  <hr className="border-gray-100" />
+
+                  {/* 2. Duration / End Time Section */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                    <div className="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100 mb-3 w-full">
+                      <button
+                        type="button"
+                        onClick={() => setDurationType('fixed')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                          durationType === 'fixed'
+                            ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-gray-200'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Clock className="w-4 h-4" /> Fixed Time
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDurationType('custom')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                          durationType === 'custom'
+                            ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-gray-200'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Calendar className="w-4 h-4" /> Custom End
+                      </button>
+                    </div>
+
+                    <div className="pt-1">
+                      {durationType === 'fixed' ? (
+                        <div className="relative">
+                          <select
+                            name="auctionDuration"
+                            value={formData.auctionDuration}
+                            onChange={handleChange}
+                            className="block w-full pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none bg-white appearance-none cursor-pointer"
+                          >
+                            <option value="1">1 Hour</option>
+                            <option value="6">6 Hours</option>
+                            <option value="12">12 Hours</option>
+                            <option value="24">1 Day</option>
+                            <option value="48">2 Days</option>
+                            <option value="72">3 Days</option>
+                            <option value="168">1 Week</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                         <input
-                          type="datetime-local"
-                          name="customEndTime"
-                          value={formData.customEndTime}
-                          onChange={handleChange}
-                          required
-                          min={new Date().toISOString().slice(0, 16)}
-                          className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none bg-gray-50 focus:bg-white"
-                        />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="animate-fadeIn">
+                           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">End Date & Time</label>
+                           <input
+                            type="datetime-local"
+                            name="customEndTime"
+                            value={formData.customEndTime}
+                            onChange={handleChange}
+                            required
+                            min={formData.customStartTime || new Date().toISOString().slice(0, 16)}
+                            className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none bg-white text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

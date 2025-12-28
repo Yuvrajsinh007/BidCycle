@@ -3,7 +3,7 @@ const Bid = require('../models/Bid');
 const upload = require('../middleware/upload');
 const nodemailer = require('nodemailer');
 
-// Email Configuration
+// 1. Email Configuration
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -14,46 +14,16 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Helper: Check and Finalize Auction
-const checkAndProcessAuctionEnd = async (item) => {
-  const now = new Date();
-  // Only process if time is up AND status is still active
-  if (item.status === 'active' && new Date(item.endTime) <= now) {
-    
-    // Find the highest bid
-    const highestBid = await Bid.findOne({ item: item._id })
-      .sort({ amount: -1 })
-      .populate('bidder');
-
-    if (highestBid) {
-      item.status = 'sold';
-      item.winner = highestBid.bidder._id;
-      item.currentBid = highestBid.amount;
-      
-      await item.save(); // Save winner status first
-
-      // Send Emails asynchronously
-      sendAuctionResultEmails(item, highestBid).catch(err => 
-        console.error('Email sending failed:', err)
-      );
-
-    } else {
-      item.status = 'expired';
-      await item.save();
-    }
-  }
-};
-
-// Helper: Send Emails
+// 2. Helper: Send Emails (Restored from old code)
 const sendAuctionResultEmails = async (item, winningBid) => {
   try {
-    // 1. Get all unique bidders for this item
+    // Get all unique bidders for this item
     const allBids = await Bid.find({ item: item._id }).populate('bidder');
     const uniqueBidders = [...new Map(allBids.map(b => [b.bidder.email, b.bidder])).values()];
 
     const winnerEmail = winningBid.bidder.email;
 
-    // 2. Loop through bidders and send appropriate email
+    // Loop through bidders and send appropriate email
     for (const bidder of uniqueBidders) {
       const isWinner = bidder.email === winnerEmail;
       
@@ -89,57 +59,96 @@ const sendAuctionResultEmails = async (item, winningBid) => {
   }
 };
 
-// --- CONTROLLER METHODS UPDATED TO USE CHECK ---
+// 3. Central Status Checker (Updated to call email function)
+const checkAndProcessAuctionStatus = async (item) => {
+  const now = new Date();
+  const start = new Date(item.startTime || item.createdAt);
+  const end = new Date(item.endTime);
+  let updated = false;
 
-// Add item
+  // A. START: Upcoming -> Active
+  if (item.status === 'upcoming' && now >= start) {
+    item.status = 'active';
+    updated = true;
+  }
+
+  // B. END: Active -> Sold/Expired
+  if (item.status === 'active' && now >= end) {
+    const highestBid = await Bid.findOne({ item: item._id })
+      .sort({ amount: -1 })
+      .populate('bidder');
+
+    if (highestBid) {
+      item.status = 'sold';
+      item.winner = highestBid.bidder._id;
+      item.currentBid = highestBid.amount;
+      
+      // Save FIRST to ensure status is updated in DB
+      await item.save(); 
+      updated = false; // Prevent double saving at the end of function
+
+      // FIX: Uncommented and calling the email function asynchronously
+      sendAuctionResultEmails(item, highestBid).catch(err => 
+        console.error('Email sending failed:', err)
+      );
+    } else {
+      item.status = 'expired';
+      updated = true;
+    }
+  }
+
+  if (updated) await item.save();
+};
+
+// --- CONTROLLER METHODS ---
+
 exports.addItem = async (req, res) => {
   try {
-    const { title, description, category, basePrice, auctionDuration, customEndTime } = req.body;
+    const { 
+      title, description, category, basePrice, 
+      auctionDuration, customEndTime, scheduleType, customStartTime 
+    } = req.body;
     
     let imageUrls = [];
-    if (req.files && req.files.length > 0) {
-      imageUrls = req.files.map(file => file.path);
+    if (req.files && req.files.length > 0) imageUrls = req.files.map(file => file.path);
+
+    if (!title || !description || !category || !basePrice) {
+      return res.status(400).json({ message: 'Required fields missing.' });
     }
 
-    // Validation: Require title, desc, cat, price. 
-    // AND require EITHER auctionDuration OR customEndTime
-    if (!title || !description || !category || !basePrice || (!auctionDuration && !customEndTime)) {
-      return res.status(400).json({ message: 'All fields are required.' });
+    // 1. Start Time Logic
+    let startTime = new Date();
+    let status = 'active';
+
+    if (scheduleType === 'scheduled' && customStartTime) {
+      startTime = new Date(customStartTime);
+      if (startTime > new Date()) {
+        status = 'upcoming';
+      }
     }
-    
+
+    // 2. End Time Logic
     let endTime;
     let finalDuration;
 
-    // LOGIC: Determine End Time
     if (customEndTime) {
-      // 1. User provided a specific date/time
       endTime = new Date(customEndTime);
-      
-      // Validation: Must be in future
-      if (endTime <= new Date()) {
-        return res.status(400).json({ message: 'End time must be in the future.' });
-      }
-
-      // Calculate approximate duration in hours for the DB schema (since it's required)
-      const diffMs = endTime - Date.now();
-      finalDuration = diffMs / (1000 * 60 * 60); 
-
+      if (endTime <= startTime) return res.status(400).json({ message: 'End time must be after start time.' });
+      finalDuration = (endTime - startTime) / (1000 * 60 * 60);
     } else {
-      // 2. User provided fixed duration (hours)
-      finalDuration = parseFloat(auctionDuration);
-      endTime = new Date(Date.now() + finalDuration * 60 * 60 * 1000);
+      finalDuration = parseFloat(auctionDuration) || 24;
+      endTime = new Date(startTime.getTime() + finalDuration * 60 * 60 * 1000);
     }
     
     const item = await Item.create({
       seller: req.user._id,
-      title,
-      description,
-      category,
+      title, description, category,
       images: imageUrls,
-      basePrice,
-      currentBid: basePrice,
-      auctionDuration: finalDuration, // Store calculated or provided duration
+      basePrice, currentBid: basePrice,
+      auctionDuration: finalDuration,
+      startTime,
       endTime,
+      status
     });
     
     await item.populate('seller', 'name email');
@@ -150,7 +159,6 @@ exports.addItem = async (req, res) => {
   }
 };
 
-// Get all items (public)
 exports.getAllItems = async (req, res) => {
   try {
     const { category, status, search, page = 1, limit = 12 } = req.query;
@@ -159,29 +167,27 @@ exports.getAllItems = async (req, res) => {
     if (category) query.category = category;
     if (search) query.title = { $regex: search, $options: 'i' };
 
-    // Standardize finding items first
     let items = await Item.find(query)
       .populate('seller', 'name')
       .populate('winner', 'name')
       .sort({ createdAt: -1 });
 
-    // Process status checks for ALL fetched items
     for (let item of items) {
-      await checkAndProcessAuctionEnd(item);
+      await checkAndProcessAuctionStatus(item);
     }
 
-    // Now filter by status in memory or refetch (Memory is safer after update)
-    // For pagination accuracy, it's better to update first then query, 
-    // but for performance on large DBs, you'd run a cron job. 
-    // Here we'll just filter the results for the response.
-    
-    if (status === 'active') {
-      items = items.filter(i => i.status === 'active' && new Date(i.endTime) > new Date());
-    } else if (status === 'ended') {
-      items = items.filter(i => i.status !== 'active' || new Date(i.endTime) <= new Date());
+    if (status) {
+        if (status === 'active') {
+             items = items.filter(i => ['active', 'upcoming'].includes(i.status));
+        } else if (status === 'ended') {
+             items = items.filter(i => ['sold', 'closed', 'expired'].includes(i.status));
+        } else {
+             items = items.filter(i => i.status === status);
+        }
+    } else {
+        items = items.filter(i => ['active', 'upcoming'].includes(i.status));
     }
 
-    // Manual pagination since we filtered in memory
     const total = items.length;
     const startIndex = (page - 1) * limit;
     const paginatedItems = items.slice(startIndex, startIndex + parseInt(limit));
@@ -201,51 +207,29 @@ exports.getAllItems = async (req, res) => {
   }
 };
 
-// Get item by ID
 exports.getItemById = async (req, res) => {
   try {
     const item = await Item.findById(req.params.id)
       .populate('seller', 'name email')
       .populate('winner', 'name email');
-      
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found.' });
-    }
-    
-    // Check status
-    await checkAndProcessAuctionEnd(item);
-    
+    if (!item) return res.status(404).json({ message: 'Item not found.' });
+    await checkAndProcessAuctionStatus(item);
     res.json(item);
-  } catch (error) {
-    console.error('Get item by ID error:', error);
-    res.status(500).json({ message: 'Server error.' });
-  }
+  } catch (error) { res.status(500).json({ message: 'Server error.' }); }
 };
 
-// View seller's items
 exports.getMyItems = async (req, res) => {
   try {
-    // 1. Fetch items where 'seller' matches the logged-in user's ID
-    // 2. Sort by 'createdAt' descending (-1) so newest are first
     const items = await Item.find({ seller: req.user._id })
       .populate('seller', 'name email')
-      .populate('winner', 'name email')
       .sort({ createdAt: -1 });
-    
-    // 3. Update statuses (Active -> Expired/Sold) if time has passed
-    // This ensures your Dashboard stats (Active vs Sold) are accurate right now
-    for (let item of items) {
-      await checkAndProcessAuctionEnd(item);
-    }
-    
+    for (let item of items) await checkAndProcessAuctionStatus(item);
     res.json(items);
-  } catch (error) {
-    console.error('Get my items error:', error);
-    res.status(500).json({ message: 'Server error.' });
-  }
+  } catch (error) { res.status(500).json({ message: 'Server error.' }); }
 };
 
-// -- KEEP OTHER METHODS (editItem, deleteItem, etc.) SAME AS BEFORE --
+// ... Rest of your existing functions (editItem, deleteItem, etc.) ...
+// Ensure you keep the exports for editItem, deleteItem, getBidHistory, getItemBids, uploadImages below this line.
 exports.editItem = async (req, res) => {
     try {
       const item = await Item.findById(req.params.id);
