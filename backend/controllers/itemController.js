@@ -1,20 +1,9 @@
 const Item = require('../models/Item');
 const Bid = require('../models/Bid');
 const upload = require('../middleware/upload');
-const nodemailer = require('nodemailer');
+const { sendEmail, getStyledHtml } = require('../utils/emailService'); // ADDED getStyledHtml
 
-// 1. Email Configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false, 
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-// 2. Helper: Send Emails (Restored from old code)
+// Helper: Send Emails with Professional Styling
 const sendAuctionResultEmails = async (item, winningBid) => {
   try {
     // Get all unique bidders for this item
@@ -27,39 +16,59 @@ const sendAuctionResultEmails = async (item, winningBid) => {
     for (const bidder of uniqueBidders) {
       const isWinner = bidder.email === winnerEmail;
       
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: bidder.email,
-        subject: isWinner ? `🎉 You Won! - ${item.title}` : `Auction Ended - ${item.title}`,
-        html: isWinner 
-          ? `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-              <h1 style="color: #4f46e5;">Congratulations! 🎉</h1>
-              <p>You have won the auction for <strong>${item.title}</strong>.</p>
-              <p>Winning Bid: <strong style="color: #16a34a; font-size: 18px;">$${winningBid.amount}</strong></p>
-              <p>Please contact the seller to arrange payment and delivery.</p>
-            </div>
-          `
-          : `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-              <h2 style="color: #555;">Auction Ended</h2>
-              <p>The auction for <strong>${item.title}</strong> has ended.</p>
-              <p>Unfortunately, you did not win this time.</p>
-              <p>Winning Bid: <strong>$${winningBid.amount}</strong></p>
-              <p>Better luck next time!</p>
-            </div>
-          `
-      };
+      let subject, html, text;
 
-      await transporter.sendMail(mailOptions);
+      if (isWinner) {
+        subject = `🎉 You Won! - ${item.title}`;
+        text = `Congratulations! You won the auction for ${item.title} for $${winningBid.amount}.`;
+        
+        const content = `
+          <p>Congratulations, <strong>${bidder.name}</strong>!</p>
+          <p>You are the winning bidder for <span class="highlight">${item.title}</span>.</p>
+          
+          <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+             <p style="margin:0; font-size: 14px; color: #065f46;">Winning Bid Amount</p>
+             <p style="margin:5px 0 0 0; font-size: 24px; font-weight: bold; color: #059669;">$${winningBid.amount}</p>
+          </div>
+
+          <p>The item is now yours! Please check your dashboard to contact the seller and arrange for delivery/payment.</p>
+        `;
+
+        const actionBtn = `<a href="${process.env.FRONTEND_URL || '#'}/items/${item._id}" class="btn">View Item Details</a>`;
+        
+        html = getStyledHtml('You Won the Auction! 🎉', content, actionBtn);
+
+      } else {
+        subject = `Auction Ended - ${item.title}`;
+        text = `The auction for ${item.title} has ended. The winning bid was $${winningBid.amount}.`;
+
+        const content = `
+          <p>Hello <strong>${bidder.name}</strong>,</p>
+          <p>The auction for <strong>${item.title}</strong> has officially ended.</p>
+          <p>Unfortunately, you did not place the highest bid this time.</p>
+          
+          <ul style="background: #f9fafb; padding: 15px 20px; border-radius: 8px; list-style: none; margin: 20px 0;">
+            <li style="margin-bottom: 5px;"><strong>Final Price:</strong> $${winningBid.amount}</li>
+            <li><strong>Winner:</strong> ${winningBid.bidder.name}</li>
+          </ul>
+
+          <p>Don't worry! There are plenty more items waiting for you.</p>
+        `;
+
+        const actionBtn = `<a href="${process.env.FRONTEND_URL || '#'}/" class="btn">Browse More Items</a>`;
+
+        html = getStyledHtml('Auction Ended', content, actionBtn);
+      }
+
+      await sendEmail(bidder.email, subject, text, html);
     }
-    console.log(`Auction emails sent for item: ${item._id}`);
+    // console.log(`Auction emails sent for item: ${item._id}`);
   } catch (error) {
     console.error('Error sending auction emails:', error);
   }
 };
 
-// 3. Central Status Checker (Updated to call email function)
+// 3. Central Status Checker
 const checkAndProcessAuctionStatus = async (item) => {
   const now = new Date();
   const start = new Date(item.startTime || item.createdAt);
@@ -83,11 +92,10 @@ const checkAndProcessAuctionStatus = async (item) => {
       item.winner = highestBid.bidder._id;
       item.currentBid = highestBid.amount;
       
-      // Save FIRST to ensure status is updated in DB
       await item.save(); 
-      updated = false; // Prevent double saving at the end of function
+      updated = false;
 
-      // FIX: Uncommented and calling the email function asynchronously
+      // Send emails
       sendAuctionResultEmails(item, highestBid).catch(err => 
         console.error('Email sending failed:', err)
       );
@@ -100,7 +108,7 @@ const checkAndProcessAuctionStatus = async (item) => {
   if (updated) await item.save();
 };
 
-// --- CONTROLLER METHODS ---
+// --- CONTROLLER METHODS (Standard methods) ---
 
 exports.addItem = async (req, res) => {
   try {
@@ -116,18 +124,14 @@ exports.addItem = async (req, res) => {
       return res.status(400).json({ message: 'Required fields missing.' });
     }
 
-    // 1. Start Time Logic
     let startTime = new Date();
     let status = 'active';
 
     if (scheduleType === 'scheduled' && customStartTime) {
       startTime = new Date(customStartTime);
-      if (startTime > new Date()) {
-        status = 'upcoming';
-      }
+      if (startTime > new Date()) status = 'upcoming';
     }
 
-    // 2. End Time Logic
     let endTime;
     let finalDuration;
 
@@ -177,13 +181,9 @@ exports.getAllItems = async (req, res) => {
     }
 
     if (status) {
-        if (status === 'active') {
-             items = items.filter(i => ['active', 'upcoming'].includes(i.status));
-        } else if (status === 'ended') {
-             items = items.filter(i => ['sold', 'closed', 'expired'].includes(i.status));
-        } else {
-             items = items.filter(i => i.status === status);
-        }
+        if (status === 'active') items = items.filter(i => ['active', 'upcoming'].includes(i.status));
+        else if (status === 'ended') items = items.filter(i => ['sold', 'closed', 'expired'].includes(i.status));
+        else items = items.filter(i => i.status === status);
     } else {
         items = items.filter(i => ['active', 'upcoming'].includes(i.status));
     }
@@ -228,8 +228,6 @@ exports.getMyItems = async (req, res) => {
   } catch (error) { res.status(500).json({ message: 'Server error.' }); }
 };
 
-// ... Rest of your existing functions (editItem, deleteItem, etc.) ...
-// Ensure you keep the exports for editItem, deleteItem, getBidHistory, getItemBids, uploadImages below this line.
 exports.editItem = async (req, res) => {
     try {
       const item = await Item.findById(req.params.id);

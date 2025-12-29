@@ -1,10 +1,10 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
+// REMOVED: const nodemailer = require('nodemailer');
 const PasswordResetToken = require('../models/PasswordResetToken');
-// ADD THIS: Import crypto at the top level
 const crypto = require('crypto');
+const { sendOtpEmail, generateOTP } = require('../utils/emailService'); // ADDED
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -16,24 +16,21 @@ const generateToken = (id) => {
 // Register user
 exports.register = async (req, res) => {
   try {
-    // 1. EXTRACT ALL FIELDS FROM REQUEST BODY
     const { name, email, password, role, phone, address, bio } = req.body;
 
-    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // 2. INCLUDE NEW FIELDS WHEN CREATING USER
     const user = await User.create({
       name,
       email,
       password,
       role: role || 'Buyer',
-      phone,   // <--- Added
-      address, // <--- Added
-      bio      // <--- Added
+      phone,
+      address,
+      bio
     });
 
     if (user) {
@@ -42,9 +39,9 @@ exports.register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        phone: user.phone,     // <--- Added to response
-        address: user.address, // <--- Added to response
-        bio: user.bio,         // <--- Added to response
+        phone: user.phone,
+        address: user.address,
+        bio: user.bio,
         token: generateToken(user._id),
       });
     }
@@ -59,32 +56,28 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check for user
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if user is banned
     if (user.isBanned) {
       return res.status(403).json({ message: 'Your account has been suspended' });
     }
 
-    // Check password
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // 3. INCLUDE NEW FIELDS IN LOGIN RESPONSE
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      phone: user.phone,      // <--- Added
-      address: user.address,  // <--- Added
-      bio: user.bio,          // <--- Added
+      phone: user.phone,
+      address: user.address,
+      bio: user.bio,
       isBanned: user.isBanned,
       profilePic: user.profilePic,
       token: generateToken(user._id),
@@ -106,7 +99,7 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// Update user profile
+// Update profile
 exports.updateProfile = async (req, res) => {
   try {
     const { name, email, phone, address, bio } = req.body;
@@ -116,7 +109,6 @@ exports.updateProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if email is being changed and if it's already taken
     if (email && email !== user.email) {
       const emailExists = await User.findOne({ email });
       if (emailExists) {
@@ -124,7 +116,6 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    // Update fields
     if (name) user.name = name;
     if (email) user.email = email;
     if (phone) user.phone = phone;
@@ -160,13 +151,11 @@ exports.changePassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check current password
     const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 
@@ -189,8 +178,7 @@ exports.uploadProfilePic = async (req, res) => {
       return res.status(400).json({ message: 'No image uploaded' });
     }
 
-    // Update profile picture
-    user.profilePic = req.file.path; // Use the path from Cloudinary
+    user.profilePic = req.file.path;
     await user.save();
 
     res.json({
@@ -213,13 +201,11 @@ exports.deleteAccount = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Verify password
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Password is incorrect' });
     }
 
-    // Delete user
     await User.findByIdAndDelete(req.user._id);
 
     res.json({ message: 'Account deleted successfully' });
@@ -239,12 +225,10 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // UPDATED: Use the top-level crypto variable
+    // Generate Tokens
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP(); // UPDATED: Use utility function
 
     // Save reset token with OTP
     await PasswordResetToken.create({
@@ -254,29 +238,14 @@ exports.forgotPassword = async (req, res) => {
       expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
     });
 
-    // Setup email transporter using env variables
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    // UPDATED: Send OTP via Brevo Service
+    const emailResult = await sendOtpEmail(user.email, otp, true);
 
-    // Send OTP email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: 'Password Reset OTP',
-      html: `
-        <h1>Password Reset Request</h1>
-        <p>Your OTP for password reset is: <strong>${otp}</strong></p>
-        <p>This OTP will expire in 10 minutes.</p>
-        <p>If you did not request a password reset, please ignore this email.</p>
-      `
-    });
+    if (!emailResult.success) {
+      // If email fails, we might want to cleanup the token or just log error
+      console.error('Failed to send OTP email:', emailResult.error);
+      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
+    }
     
     res.json({ 
       message: 'Password reset OTP sent to your email',
@@ -293,10 +262,8 @@ exports.resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
-    // UPDATED: Use the top-level crypto variable
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    // Find reset token
     const resetToken = await PasswordResetToken.findOne({
       token: hashedToken,
       expiresAt: { $gt: Date.now() },
@@ -306,7 +273,6 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
-    // Update user password
     const user = await User.findById(resetToken.user);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -315,7 +281,6 @@ exports.resetPassword = async (req, res) => {
     user.password = password;
     await user.save();
 
-    // Delete reset token
     await PasswordResetToken.findByIdAndDelete(resetToken._id);
 
     res.json({ message: 'Password reset successful' });
