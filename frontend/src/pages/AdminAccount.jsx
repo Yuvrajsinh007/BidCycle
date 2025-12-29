@@ -157,7 +157,7 @@ const AdminAccount = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+      const baseURL = process.env.REACT_APP_API_URL;
       
       const response = await axios.post(`${baseURL}/auth/profile-pic`, formData, {
         headers: {
