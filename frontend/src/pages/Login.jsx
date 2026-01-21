@@ -59,7 +59,7 @@ const Login = () => {
               Join the world's most trusted marketplace for auctions. Bid, sell, and win with confidence.
             </p>
           </div>
-          <div className="text-sm text-indigo-200">© 2024 BidCycle Inc.</div>
+          <div className="text-sm text-indigo-200">© {new Date().getFullYear()} BidCycle Inc.</div>
         </div>
       </div>
 

@@ -90,7 +90,7 @@ const Register = () => {
               Create an account today to start bidding on exclusive items or selling your own treasures to a global audience.
             </p>
           </div>
-          <div className="text-sm text-indigo-200">© 2024 BidCycle Inc.</div>
+          <div className="text-sm text-indigo-200">© {new Date().getFullYear()} BidCycle Inc.</div>
         </div>
       </div>
 
