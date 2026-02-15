@@ -111,3 +111,58 @@ exports.getSellerProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+// Edit Review
+exports.editReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const reviewId = req.params.id;
+
+    let review = await Review.findById(reviewId);
+
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    // Ensure the user owns the review
+    if (review.author.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to edit this review' });
+    }
+
+    review.rating = rating;
+    review.comment = comment;
+
+    await review.save();
+
+    res.json({ message: 'Review updated', review });
+  } catch (error) {
+    console.error('Edit review error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Delete Review
+exports.deleteReview = async (req, res) => {
+  try {
+    const reviewId = req.params.id;
+
+    const review = await Review.findById(reviewId);
+
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    // Ensure the user owns the review
+    if (review.author.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to delete this review' });
+    }
+
+    await review.deleteOne();
+
+    res.json({ message: 'Review deleted' });
+  } catch (error) {
+    console.error('Delete review error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
