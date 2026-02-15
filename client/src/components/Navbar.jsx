@@ -9,10 +9,10 @@ import {
   ChevronDown, 
   LogOut, 
   User as UserIcon, 
-  Settings, 
   ShoppingBag,
   PlusCircle,
-  List
+  List,
+  Heart // Ensure Heart is imported
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -27,7 +27,7 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Decreased py-4 to py-2 for smaller height */}
+        {/* Decreased py-4 to py-3 for smaller height */}
         <div className="flex justify-between items-center py-3">
           {/* Logo */}
           <Link to={user ? "/market" : "/"} className="flex items-center gap-2 group">
@@ -41,7 +41,7 @@ const Navbar = () => {
 
           {/* Navigation Links */}
           {user ? (
-            <>
+            <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-1">
                 <Link
                   to="/market"
@@ -52,15 +52,13 @@ const Navbar = () => {
 
                 {/* Seller Links */}
                 {user.role === 'Seller' && (
-                  <>
-                    <Link
-                      to="/create-item"
-                      className="px-4 py-2 text-gray-600 hover:text-indigo-600 font-medium rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2"
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      Sell Item
-                    </Link>
-                  </>
+                  <Link
+                    to="/create-item"
+                    className="px-4 py-2 text-gray-600 hover:text-indigo-600 font-medium rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Sell Item
+                  </Link>
                 )}
 
                 {/* Buyer/Seller Dashboard (Non-Admin) */}
@@ -72,6 +70,18 @@ const Navbar = () => {
                     Dashboard
                   </Link>
                 )}
+                
+                {/* --- WATCHLIST LINK (Only for Buyers) --- */}
+                {user.role === 'Buyer' && (
+                  <Link 
+                    to="/watchlist" 
+                    className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors relative group"
+                    title="Watchlist"
+                  >
+                    <Heart className="w-6 h-6" />
+                  </Link>
+                )}
+                {/* --------------------------- */}
 
                 {/* --- Admin Dropdown --- */}
                 {user.role === 'Admin' && (
@@ -125,12 +135,11 @@ const Navbar = () => {
               </div>
 
               {/* User Info & Profile Dropdown */}
-              <div className="flex items-center space-x-4 pl-4">
+              <div className="flex items-center pl-4 border-l border-gray-200 ml-2">
                 <div className="relative group">
                   <button className="flex items-center space-x-2 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition-colors">
-                    {/* Decreased size from w-10 h-10 to w-9 h-9 */}
                     <div className="w-9 h-9 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 p-[2px]">
-                       <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                        <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
                           {user.profilePic ? (
                             <img 
                               src={user.profilePic} 
@@ -142,7 +151,7 @@ const Navbar = () => {
                               {user.name.charAt(0).toUpperCase()}
                             </span>
                           )}
-                       </div>
+                        </div>
                     </div>
                     <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
                   </button>
@@ -167,23 +176,23 @@ const Navbar = () => {
                       </Link>
 
                       {user.role === 'Seller' && (
-                         <Link
-                         to="/my-items"
-                         className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors mx-2 rounded-md"
-                       >
-                         <List className="w-4 h-4 mr-3" />
-                         My Listings
-                       </Link>
+                          <Link
+                          to="/my-items"
+                          className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors mx-2 rounded-md"
+                        >
+                          <List className="w-4 h-4 mr-3" />
+                          My Listings
+                        </Link>
                       )}
 
                       {user.role !== 'Admin' && user.role !== 'Seller' && (
-                         <Link
-                         to="/dashboard"
-                         className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors mx-2 rounded-md"
-                       >
-                         <ShoppingBag className="w-4 h-4 mr-3" />
-                         My Bids & Orders
-                       </Link>
+                          <Link
+                          to="/dashboard"
+                          className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors mx-2 rounded-md"
+                        >
+                          <ShoppingBag className="w-4 h-4 mr-3" />
+                          My Bids & Orders
+                        </Link>
                       )}
                     </div>
 
@@ -199,7 +208,7 @@ const Navbar = () => {
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
             <div className="flex items-center space-x-4">
               <Link
@@ -210,7 +219,6 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/register"
-                // Decreased vertical padding to py-2 to match navbar height
                 className="px-5 py-2 bg-indigo-600 text-white font-medium rounded-full shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all transform hover:-translate-y-0.5"
               >
                 Get Started

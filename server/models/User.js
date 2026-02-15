@@ -10,6 +10,12 @@ const userSchema = new mongoose.Schema({
     enum: ['Seller', 'Buyer', 'Admin'],
     default: 'Buyer',
   },
+  // --- NEW FIELD ---
+  watchlist: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Item' 
+  }],
+  // ----------------
   profilePic: { type: String },
   phone: { type: String },
   address: { type: String },
@@ -27,9 +33,8 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Password comparison method
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

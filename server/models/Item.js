@@ -7,14 +7,19 @@ const itemSchema = new mongoose.Schema({
   category: { type: String, required: true },
   images: [{ type: String }],
   basePrice: { type: Number, required: true },
+  
+  // --- UPDATED BIDDING FIELDS ---
   currentBid: { type: Number, default: 0 },
+  highestMaxBid: { type: Number, default: 0, select: false }, // SECRET: Not sent to frontend
+  winner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // -----------------------------
+
   auctionDuration: { type: Number, required: true }, // in hours
   status: { 
     type: String, 
     enum: ['upcoming', 'active', 'sold', 'closed', 'expired'], 
     default: 'active' 
   },
-  winner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   endTime: { type: Date, required: true },
 });
@@ -48,4 +53,4 @@ itemSchema.methods.updateStatus = async function() {
   return this;
 };
 
-module.exports = mongoose.model('Item', itemSchema); 
+module.exports = mongoose.model('Item', itemSchema);

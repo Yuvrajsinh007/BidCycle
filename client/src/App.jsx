@@ -7,19 +7,22 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-import VerifyOtp from './pages/VerifyOtp'; // Import New Page
+import VerifyOtp from './pages/VerifyOtp';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import ItemDetail from './pages/ItemDetail';
 import CreateItem from './pages/CreateItem';
 import MyItems from './pages/MyItems';
 import EditItem from './pages/EditItem';
+import ChatWindow from './pages/ChatWindow';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminItems from './pages/AdminItems';
 import AdminBids from './pages/AdminBids';
 import Account from './pages/Account';
 import AdminAccount from './pages/AdminAccount';
+import Watchlist from './pages/Watchlist';
+import SellerProfile from './pages/SellerProfile';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -55,6 +58,7 @@ function App() {
               <Route path="/verify-otp" element={<VerifyOtp />} /> {/* New Route */}
               <Route path="/reset-password" element={<ResetPassword />} /> {/* Updated Route */}
               <Route path="/item/:id" element={<ItemDetail />} />
+              <Route path="/seller/:id" element={<SellerProfile />} />
               
               {/* Protected Routes */}
               <Route 
@@ -65,6 +69,21 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+
+              <Route 
+                path="/watchlist" 
+                element={
+                  <ProtectedRoute>
+                    <Watchlist />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route path="/chat/:itemId" element={
+                <ProtectedRoute>
+                  <ChatWindow />
+                </ProtectedRoute>
+              } />
               
               <Route 
                 path="/dashboard" 

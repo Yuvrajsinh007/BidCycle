@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import io from 'socket.io-client';
 import api from "../services/api";
 import { 
   Clock, 
@@ -15,8 +16,13 @@ import {
   ShieldAlert,
   History,
   Info,
-  Calendar
+  Calendar,
+  Heart,
+  MessageCircle
 } from 'lucide-react';
+
+// Initialize Socket outside component to avoid multiple connections
+const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
 
 const ItemDetail = () => {
   const { id } = useParams();
@@ -31,19 +37,97 @@ const ItemDetail = () => {
   const [success, setSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [, setTick] = useState(0); // State to force re-render every second
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [, setTick] = useState(0); // Force re-render for timer
 
   useEffect(() => {
     fetchItemDetails();
-    
+
+    // Check watchlist status
+    const checkWatchlist = async () => {
+        if (user) {
+            try {
+                const res = await api.get('/users/watchlist');
+                const found = res.data.find(i => i._id === id);
+                setIsInWatchlist(!!found);
+            } catch (err) { console.error(err); }
+        }
+    };
+    checkWatchlist();
+
+    // --- SOCKET.IO LOGIC START ---
+    socket.emit('join_item', id);
+
+    // Listener: Update price & history when someone bids
+    const handleBidUpdate = (data) => {
+      if (data.itemId === id) {
+        setItem((prev) => {
+            if (!prev) return prev; // Safety check
+            return { ...prev, currentBid: data.currentBid };
+        });
+        
+        // Add the new bid to the top of the list visually
+        setBids((prev) => [
+          {
+            _id: Date.now(), // Temporary ID until refresh
+            amount: data.currentBid,
+            bidder: { name: data.bidderName || 'New Bidder' },
+            createdAt: new Date().toISOString()
+          },
+          ...prev
+        ]);
+      }
+    };
+
+    // Listener: Handle instant Auction End
+    const handleAuctionEnd = (data) => {
+      if (data.itemId === id) {
+        setItem((prev) => {
+            if (!prev) return prev;
+            return { 
+                ...prev, 
+                status: data.status, 
+                winner: data.winner 
+            };
+        });
+        // Optional: Refresh full data to get exact winner details if needed
+        fetchItemDetails(); 
+      }
+    };
+
+    socket.on('bid_update', handleBidUpdate);
+    socket.on('auction_ended', handleAuctionEnd);
+    // --- SOCKET.IO LOGIC END ---
+
     // Live Timer Interval
     const timer = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(timer);
-  }, [id]);
+
+    // Cleanup
+    return () => {
+      clearInterval(timer);
+      socket.off('bid_update', handleBidUpdate);
+      socket.off('auction_ended', handleAuctionEnd);
+    };
+
+  }, [id, user]);
+
+  const handleToggleWatchlist = async () => {
+    if (!user) {
+        navigate('/login');
+        return;
+    }
+    try {
+        const res = await api.post('/users/watchlist', { itemId: item._id });
+        setIsInWatchlist(res.data.isAdded);
+        setSuccess(res.data.message);
+        setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+        setError('Failed to update watchlist');
+    }
+  };
 
   const fetchItemDetails = async () => {
     try {
-      // Don't set loading true on background refreshes if data exists
       if (!item) setLoading(true); 
       
       const [itemResponse, bidsResponse] = await Promise.all([
@@ -93,7 +177,6 @@ const ItemDetail = () => {
       const response = await api.post(`/bids/${id}`, { amount });
       setSuccess(response.data.message || "Bid placed successfully!");
       setBidAmount("");
-      fetchItemDetails(); // Refresh data
     } catch (error) {
       setError(error.response?.data?.message || "Failed to place bid");
     } finally {
@@ -103,25 +186,30 @@ const ItemDetail = () => {
 
   // Logic for Status
   const isUpcoming = item && item.status === 'upcoming';
-  const isAuctionEnded = item && (new Date(item.endTime) < new Date() || item.status === 'sold' || item.status === 'expired' || item.status === 'closed');
+  const isAuctionEnded = item && (['sold', 'expired', 'closed'].includes(item.status) || new Date(item.endTime) < new Date());
   const isAuctionActive = item && item.status === 'active' && !isAuctionEnded && !isUpcoming;
 
   // Logic for winning/losing
-  const didUserBid = user && bids.some(bid => bid.bidder._id === user._id || bid.bidder === user._id);
-  const isWinner = user && item?.winner && (item.winner._id === user._id || item.winner === user._id);
+  const didUserBid = user && bids.some(bid => bid.bidder?._id === user._id || bid.bidder === user._id);
+  
+  // FIX 1: Only show "Winner" message if auction is actually ended
+  const isWinner = isAuctionEnded && user && item?.winner && (item.winner._id === user._id || item.winner === user._id);
+  
   const isLoser = isAuctionEnded && didUserBid && !isWinner;
+  
+  // FIX 2: Safe navigation to prevent crash when item is null (loading state)
+  const isOwner = user && item?.seller?._id === user._id;
 
   // Unified Timer Function
   const formatTimer = () => {
     if (!item) return "";
     const now = new Date();
     
-    // If upcoming, count down to Start Time. Else, count to End Time.
     const targetDate = isUpcoming ? new Date(item.startTime) : new Date(item.endTime);
     const diff = targetDate - now;
 
     if (diff <= 0) {
-        return isUpcoming ? "Starting..." : "Auction ended";
+       return isUpcoming ? "Starting..." : "Auction ended";
     }
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -211,17 +299,17 @@ const ItemDetail = () => {
                   {/* Status Badge Overlay */}
                   <div className="absolute top-4 right-4">
                       {isUpcoming ? (
-                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/90 text-white backdrop-blur-md shadow-sm">
-                            <Calendar className="w-3 h-3" /> Upcoming
-                         </span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/90 text-white backdrop-blur-md shadow-sm">
+                             <Calendar className="w-3 h-3" /> Upcoming
+                          </span>
                       ) : isAuctionEnded ? (
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-900/80 text-white backdrop-blur-md">
                            Auction Ended
                           </span>
                       ) : (
-                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white backdrop-blur-md animate-pulse">
-                            <Clock className="w-3 h-3" /> Live Auction
-                         </span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white backdrop-blur-md animate-pulse">
+                             <Clock className="w-3 h-3" /> Live Auction
+                          </span>
                       )}
                   </div>
                 </>
@@ -274,13 +362,31 @@ const ItemDetail = () => {
                  <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-full">
                     {item.category}
                  </span>
-                 <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1">
-                    <User className="w-3 h-3" /> {item.seller?.name || 'Unknown Seller'}
-                 </span>
+                 <Link 
+                   to={`/seller/${item.seller?._id}`} 
+                   className="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-indigo-600 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1 transition-colors"
+                 >
+                   <User className="w-3 h-3" /> {item.seller?.name || 'Unknown Seller'}
+                 </Link>
               </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight mb-2">
-                {item.title}
-              </h1>
+              
+              <div className="flex justify-between items-start">
+                <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight mb-2">
+                  {item.title}
+                </h1>
+                
+                <button 
+                    onClick={handleToggleWatchlist}
+                    className={`p-3 rounded-full shadow-sm border transition-all flex-shrink-0 ml-4 ${
+                        isInWatchlist 
+                        ? "bg-red-50 border-red-200 text-red-500" 
+                        : "bg-white border-gray-200 text-gray-400 hover:text-red-400"
+                    }`}
+                    title={isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+                >
+                    <Heart className={`w-6 h-6 ${isInWatchlist ? "fill-current" : ""}`} />
+                </button>
+              </div>
             </div>
 
             {/* Current Status Card */}
@@ -325,17 +431,17 @@ const ItemDetail = () => {
                {/* Bidding Action Area */}
                {isUpcoming ? (
                   <div className="pt-6 border-t border-gray-100">
-                     <div className="text-center py-6 bg-blue-50 rounded-xl border border-blue-100">
-                         <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                         <h3 className="text-blue-900 font-bold text-lg">Coming Soon</h3>
-                         <p className="text-blue-700">
-                            This auction is scheduled to start on <br/>
-                            <span className="font-semibold text-blue-900">
+                      <div className="text-center py-6 bg-blue-50 rounded-xl border border-blue-100">
+                          <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                          <h3 className="text-blue-900 font-bold text-lg">Coming Soon</h3>
+                          <p className="text-blue-700">
+                             This auction is scheduled to start on <br/>
+                             <span className="font-semibold text-blue-900">
                                 {new Date(item.startTime).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}
-                            </span>
-                         </p>
-                     </div>
-                  </div>
+                             </span>
+                          </p>
+                      </div>
+                   </div>
                ) : isAuctionActive ? (
                  <div className="pt-6 border-t border-gray-100">
                    {!user ? (
@@ -358,7 +464,7 @@ const ItemDetail = () => {
                             <User className="w-5 h-5 flex-shrink-0" />
                             <p className="font-medium">Registered as {user.role}. Only Buyer accounts can bid.</p>
                        </div>
-                   ) : (
+                   ) : !isOwner ? (
                        <>
                           {error && (
                                <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm font-medium rounded-lg flex items-center gap-2">
@@ -371,39 +477,51 @@ const ItemDetail = () => {
                                </div>
                           )}
                           
-                          <form onSubmit={handleBid} className="flex flex-col sm:flex-row gap-3">
-                               <div className="relative flex-grow">
-                                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                       <DollarSign className="h-5 w-5 text-gray-400" />
+                          <form onSubmit={handleBid} className="flex flex-col gap-3">
+                               <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    Set Your Maximum Bid
+                                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        Proxy Bidding Active
+                                    </span>
+                               </label>
+                               <div className="flex flex-col sm:flex-row gap-3">
+                                   <div className="relative flex-grow">
+                                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                           <DollarSign className="h-5 w-5 text-gray-400" />
+                                       </div>
+                                       <input
+                                           type="number"
+                                           value={bidAmount}
+                                           onChange={(e) => setBidAmount(e.target.value)}
+                                           min={item.currentBid ? item.currentBid + 1 : item.basePrice + 1}
+                                           step="1"
+                                           required
+                                           disabled={submitting}
+                                           placeholder={`Enter $${item.currentBid ? item.currentBid + 1 : item.basePrice + 1} or more`}
+                                           className="block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
+                                       />
                                    </div>
-                                   <input
-                                       type="number"
-                                       value={bidAmount}
-                                       onChange={(e) => setBidAmount(e.target.value)}
-                                       min={item.currentBid ? item.currentBid + 1 : item.basePrice + 1}
-                                       step="0.01"
-                                       required
+                                   <button
+                                       type="submit"
                                        disabled={submitting}
-                                       placeholder={`Enter $${item.currentBid ? item.currentBid + 1 : item.basePrice + 1} or more`}
-                                       className="block w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
-                                   />
+                                       className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-95 flex items-center justify-center gap-2"
+                                   >
+                                       {submitting ? (
+                                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                       ) : (
+                                           <>Place Bid <Gavel className="w-4 h-4" /></>
+                                       )}
+                                   </button>
                                </div>
-                               <button
-                                   type="submit"
-                                   disabled={submitting}
-                                   className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-95 flex items-center justify-center gap-2"
-                               >
-                                   {submitting ? (
-                                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                   ) : (
-                                       <>Place Bid <Gavel className="w-4 h-4" /></>
-                                   )}
-                               </button>
+                               <p className="text-xs text-gray-500 leading-relaxed text-center sm:text-left">
+                                  Enter the maximum you are willing to pay. We will bid the lowest amount necessary to keep you in the lead, up to your limit.
+                               </p>
                           </form>
-                          <p className="text-xs text-gray-400 mt-2 text-center sm:text-left">
-                              By placing a bid, you agree to the auction terms and conditions.
-                          </p>
                        </>
+                   ) : (
+                       <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-200 border-dashed">
+                           <p className="text-gray-500 font-medium">This is your item</p>
+                       </div>
                    )}
                  </div>
                ) : null}
@@ -419,6 +537,22 @@ const ItemDetail = () => {
                            </div>
                        ) : (
                            <p className="text-gray-500">No bids were placed or reserve not met.</p>
+                       )}
+
+                       {/* --- CHAT BUTTON (New) --- */}
+                       {(isWinner || isOwner) && (
+                           <div className="mt-6">
+                               <Link 
+                                   to={`/chat/${item._id}`}
+                                   className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all"
+                               >
+                                   <MessageCircle className="w-5 h-5" />
+                                   {isOwner ? "Chat with Winner" : "Chat with Seller"}
+                               </Link>
+                               <p className="text-xs text-center text-gray-500 mt-2">
+                                   Contact to arrange payment and delivery details.
+                               </p>
+                           </div>
                        )}
                    </div>
                )}
