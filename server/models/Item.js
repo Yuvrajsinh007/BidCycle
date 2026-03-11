@@ -17,7 +17,7 @@ const itemSchema = new mongoose.Schema({
   auctionDuration: { type: Number, required: true }, // in hours
   status: { 
     type: String, 
-    enum: ['upcoming', 'active', 'sold', 'closed', 'expired'], 
+    enum: ['upcoming', 'active', 'sold', 'closed', 'expired', 'paid'], 
     default: 'active' 
   },
   createdAt: { type: Date, default: Date.now },

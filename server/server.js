@@ -13,7 +13,9 @@ const Bid = require('./models/Bid');
 const { sendEmail } = require('./utils/emailService');
 
 // Route Imports
-const chatRoutes = require('./routes/chat'); // Import chat routes
+const chatRoutes = require('./routes/chat');
+const paymentRoutes = require('./routes/payment');
+const { verifyPayment } = require('./controllers/paymentController');
 
 // Load environment variables
 dotenv.config();
@@ -66,10 +68,13 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true
 }));
+
+app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), verifyPayment);
 app.use(express.json());
 
 // --- CRON JOB FOR AUTOMATIC AUCTION CLOSING ---
 // Runs every minute to check for expired auctions
+
 cron.schedule('* * * * *', async () => {
   try {
     const now = new Date();
@@ -120,16 +125,18 @@ cron.schedule('* * * * *', async () => {
     console.error('Cron job error:', error);
   }
 });
+
 // ----------------------------------------------
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users')); // Watchlist & Profile
+app.use('/api/users', require('./routes/users'));
 app.use('/api/seller', require('./routes/seller'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/bids', require('./routes/bids'));
-app.use('/api/chat', chatRoutes); // Chat System
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/chat', chatRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Online Auction API is running');
