@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
-import axios from "axios"; 
 import { 
   User, 
   Lock, 
@@ -156,12 +155,9 @@ const AdminAccount = () => {
     formData.append("profilePic", profilePic);
 
     try {
-      const token = localStorage.getItem("token");
-      const baseURL = process.env.REACT_APP_API_URL;
-      
-      const response = await axios.post(`${baseURL}/auth/profile-pic`, formData, {
+      const response = await api.post('/auth/profile-pic', formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
       });
 
@@ -197,11 +193,11 @@ const AdminAccount = () => {
 
   if (!user || user.role !== "Admin") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-lg border border-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <div className="bg-white p-10 rounded-[2rem] shadow-xl text-center max-w-lg border border-slate-100">
           <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-500">This page is only accessible to administrators.</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
+          <p className="text-slate-500">This page is only accessible to administrators.</p>
         </div>
       </div>
     );
@@ -215,11 +211,11 @@ const AdminAccount = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 px-4 md:px-8 pb-12 pt-28 md:pt-36 lg:pt-40">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Admin Settings</h1>
-          <p className="text-gray-500 mt-2">Manage your account and system preferences</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Settings</h1>
+          <p className="text-slate-500 mt-2">Manage your account and system preferences</p>
         </div>
 
         {message.text && (
@@ -243,10 +239,10 @@ const AdminAccount = () => {
           </div>
         )}
 
-        <div className="grid md:grid-cols-[280px_1fr] gap-8">
+        <div className="grid md:grid-cols-[280px_1fr] gap-8 items-start">
           {/* Sidebar */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-fit sticky top-24">
-            <div className="p-6 bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-center">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden h-fit md:sticky md:top-36 z-10">
+            <div className="p-6 bg-gradient-to-br from-slate-900 to-black text-white text-center">
               <div className="w-24 h-24 rounded-full border-4 border-white/30 overflow-hidden mx-auto mb-4 shadow-lg bg-white">
                 {profilePicPreview || user.profilePic ? (
                   <img
@@ -255,13 +251,13 @@ const AdminAccount = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-indigo-600 text-3xl font-bold bg-white">
+                  <div className="w-full h-full flex items-center justify-center text-brand-600 text-3xl font-bold bg-white">
                     {user.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
               <h3 className="font-bold text-lg truncate">{user.name}</h3>
-              <p className="text-indigo-100 text-sm truncate opacity-90">{user.email}</p>
+              <p className="text-brand-100 text-sm truncate opacity-90">{user.email}</p>
               <div className="mt-3 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-white/20 border border-white/20 backdrop-blur-sm">
                 <Shield className="w-3 h-3" /> ADMIN
               </div>
@@ -277,11 +273,11 @@ const AdminAccount = () => {
                   }}
                   className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-medium text-sm mb-1 ${
                     activeTab === tab.id
-                      ? "bg-indigo-50 text-indigo-600 shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-brand-50 text-brand-600 shadow-sm"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span className={`${activeTab === tab.id ? "text-indigo-600" : "text-gray-400"}`}>
+                  <span className={`${activeTab === tab.id ? "text-brand-600" : "text-slate-400"}`}>
                     {tab.icon}
                   </span>
                   <span>{tab.label}</span>
@@ -291,83 +287,83 @@ const AdminAccount = () => {
           </div>
 
           {/* Main Content */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 min-h-[500px]">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 min-h-[500px]">
             {/* Profile Tab */}
             {activeTab === "profile" && (
               <TabWrapper>
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-5 mb-8">
-                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+                    <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
                         <User className="w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Profile Information</h2>
-                        <p className="text-gray-500 text-sm">Update your personal details</p>
+                        <h2 className="text-xl font-bold text-slate-900">Profile Information</h2>
+                        <p className="text-slate-500 text-sm">Update your personal details</p>
                     </div>
                 </div>
 
                 <form onSubmit={handleProfileUpdate} className="space-y-6 max-w-2xl">
                   <div className="grid md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
                         <div className="relative">
-                            <User className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                            <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                             <input
                             type="text"
                             value={profileData.name}
                             onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
                             />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
                         <div className="relative">
-                            <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                            <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                             <input
                             type="email"
                             value={profileData.email}
                             disabled
-                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
                             />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
                         <div className="relative">
-                            <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                            <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                             <input
                             type="tel"
                             value={profileData.phone}
                             onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
                             />
                         </div>
                       </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Address</label>
                     <div className="relative">
-                        <MapPin className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                        <MapPin className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                         <textarea
                         value={profileData.address}
                         onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
                         rows={2}
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all resize-none"
                         />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
                     <div className="relative">
-                        <FileText className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                        <FileText className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                         <textarea
                         value={profileData.bio}
                         onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                         rows={4}
                         placeholder="Tell us about yourself..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
                         />
                     </div>
                   </div>
@@ -376,7 +372,7 @@ const AdminAccount = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed font-medium transform active:scale-95"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 hover:shadow-brand-300 disabled:opacity-70 disabled:cursor-not-allowed font-medium transform active:scale-95"
                     >
                       {loading ? (
                           <>Saving...</>
@@ -394,20 +390,20 @@ const AdminAccount = () => {
             {/* Password Tab */}
             {activeTab === "password" && (
               <TabWrapper>
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-5 mb-8">
-                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+                    <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
                         <Lock className="w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Security Settings</h2>
-                        <p className="text-gray-500 text-sm">Manage your password and security</p>
+                        <h2 className="text-xl font-bold text-slate-900">Security Settings</h2>
+                        <p className="text-slate-500 text-sm">Manage your password and security</p>
                     </div>
                 </div>
 
                 <form onSubmit={handlePasswordChange} className="space-y-6 max-w-md">
                   {/* Current Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
                     <div className="relative">
                       <input
                         type={showCurrentPassword ? "text" : "password"}
@@ -415,13 +411,13 @@ const AdminAccount = () => {
                         onChange={(e) =>
                           setPasswordData({ ...passwordData, currentPassword: e.target.value })
                         }
-                        className="w-full px-4 py-2.5 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full px-4 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
                       >
                         {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -430,7 +426,7 @@ const AdminAccount = () => {
 
                   {/* New Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
                     <div className="relative">
                       <input
                         type={showNewPassword ? "text" : "password"}
@@ -438,14 +434,14 @@ const AdminAccount = () => {
                         onChange={(e) =>
                           setPasswordData({ ...passwordData, newPassword: e.target.value })
                         }
-                        className="w-full px-4 py-2.5 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full px-4 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
                         required
                         minLength={6}
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
                       >
                         {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -454,7 +450,7 @@ const AdminAccount = () => {
 
                   {/* Confirm Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
                     <div className="relative">
                       <input
                         type={showConfirmPassword ? "text" : "password"}
@@ -462,13 +458,13 @@ const AdminAccount = () => {
                         onChange={(e) =>
                           setPasswordData({ ...passwordData, confirmPassword: e.target.value })
                         }
-                        className="w-full px-4 py-2.5 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full px-4 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
                       >
                         {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -479,7 +475,7 @@ const AdminAccount = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed font-medium transform active:scale-95"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 hover:shadow-brand-300 disabled:opacity-70 disabled:cursor-not-allowed font-medium transform active:scale-95"
                     >
                       {loading ? "Updating..." : "Update Password"}
                     </button>
@@ -491,32 +487,32 @@ const AdminAccount = () => {
             {/* Admin Settings Tab */}
             {activeTab === "admin-settings" && (
               <TabWrapper>
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-5 mb-8">
-                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+                    <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
                         <Settings className="w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">System Configuration</h2>
-                        <p className="text-gray-500 text-sm">Configure platform settings</p>
+                        <h2 className="text-xl font-bold text-slate-900">System Configuration</h2>
+                        <p className="text-slate-500 text-sm">Configure platform settings</p>
                     </div>
                 </div>
 
                 <form onSubmit={handleAdminSettingsUpdate} className="space-y-6 max-w-lg">
                   <div className="space-y-3">
                     {Object.keys(adminSettings).map((key) => (
-                      <label key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:border-indigo-200 transition-all group">
+                      <label key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:border-brand-200 transition-all group">
                         <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${adminSettings[key] ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'} transition-colors`}>
+                            <div className={`p-2 rounded-lg ${adminSettings[key] ? 'bg-brand-100 text-brand-600' : 'bg-slate-200 text-slate-500'} transition-colors`}>
                                 {key.includes('Notification') ? <Bell className="w-4 h-4" /> : 
                                  key.includes('Alert') ? <AlertTriangle className="w-4 h-4" /> :
                                  key.includes('Ban') ? <Shield className="w-4 h-4" /> :
                                  <FileText className="w-4 h-4" />}
                             </div>
-                            <span className="text-gray-700 font-medium capitalize group-hover:text-indigo-900 transition-colors">
+                            <span className="text-slate-700 font-medium capitalize group-hover:text-brand-900 transition-colors">
                             {key.replace(/([A-Z])/g, " $1")}
                             </span>
                         </div>
-                        <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full border border-gray-200">
+                        <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full border border-slate-200">
                             <input
                                 type="checkbox"
                                 checked={adminSettings[key]}
@@ -525,7 +521,7 @@ const AdminAccount = () => {
                                 }
                                 className="absolute w-full h-full opacity-0 cursor-pointer z-10"
                             />
-                            <span className={`block w-full h-full rounded-full transition-colors duration-200 ${adminSettings[key] ? 'bg-indigo-600' : 'bg-gray-200'}`}></span>
+                            <span className={`block w-full h-full rounded-full transition-colors duration-200 ${adminSettings[key] ? 'bg-brand-600' : 'bg-slate-200'}`}></span>
                             <span className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 transform ${adminSettings[key] ? 'translate-x-6' : 'translate-x-0'}`}></span>
                         </div>
                       </label>
@@ -535,7 +531,7 @@ const AdminAccount = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-70 disabled:cursor-not-allowed font-medium transform active:scale-95"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 hover:shadow-brand-300 disabled:opacity-70 disabled:cursor-not-allowed font-medium transform active:scale-95"
                     >
                       {loading ? "Saving..." : "Save Configuration"}
                     </button>
@@ -547,18 +543,18 @@ const AdminAccount = () => {
             {/* Profile Picture Tab */}
             {activeTab === "profile-pic" && (
               <TabWrapper>
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-5 mb-8">
-                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-8">
+                    <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
                         <Camera className="w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Profile Picture</h2>
-                        <p className="text-gray-500 text-sm">Update your public avatar</p>
+                        <h2 className="text-xl font-bold text-slate-900">Profile Picture</h2>
+                        <p className="text-slate-500 text-sm">Update your public avatar</p>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-indigo-100 rounded-2xl bg-indigo-50/30">
-                  <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-8 border-4 border-white ring-4 ring-indigo-50">
+                <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-brand-100 rounded-[2rem] bg-brand-50/30">
+                  <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-8 border-4 border-white ring-4 ring-brand-50">
                     {profilePicPreview ? (
                       <img
                         src={profilePicPreview}
@@ -566,7 +562,7 @@ const AdminAccount = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">
+                      <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300">
                         <User className="w-20 h-20" />
                       </div>
                     )}
@@ -574,7 +570,7 @@ const AdminAccount = () => {
                   
                   <div className="w-full max-w-sm space-y-4">
                     <label className="block w-full cursor-pointer group">
-                        <div className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white border border-indigo-100 rounded-xl shadow-sm text-gray-600 group-hover:border-indigo-300 group-hover:text-indigo-600 transition-all">
+                        <div className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-white border border-brand-100 rounded-xl shadow-sm text-slate-600 group-hover:border-brand-300 group-hover:text-brand-600 transition-all">
                             <Upload className="w-4 h-4" />
                             <span className="font-medium text-sm">Choose Image File</span>
                         </div>
@@ -589,11 +585,11 @@ const AdminAccount = () => {
                     <button
                       onClick={handleProfilePicUpload}
                       disabled={loading || !profilePic}
-                      className="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium transform active:scale-[0.98]"
+                      className="w-full px-6 py-3 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 hover:shadow-brand-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium transform active:scale-[0.98]"
                     >
                       {loading ? "Uploading..." : "Upload New Picture"}
                     </button>
-                    <p className="text-xs text-center text-gray-400 mt-4">Supported formats: JPG, PNG, JPEG</p>
+                    <p className="text-xs text-center text-slate-400 mt-4">Supported formats: JPG, PNG, JPEG</p>
                   </div>
                 </div>
               </TabWrapper>

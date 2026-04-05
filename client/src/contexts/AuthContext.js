@@ -46,6 +46,14 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error) {
+      if (error.response?.data?.requiresVerification) {
+        return { 
+          success: false, 
+          requiresVerification: true, 
+          email: error.response.data.email, 
+          message: error.response.data.message 
+        };
+      }
       return { 
         success: false, 
         message: error.response?.data?.message || 'Login failed' 
@@ -56,10 +64,24 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
+      
+      // If it requires verification, don't set user state yet
+      if (response.data.requiresVerification) {
+        return { 
+          success: true, 
+          requiresVerification: true, 
+          email: response.data.email, 
+          message: response.data.message 
+        };
+      }
+
+      // Legacy support just in case
       const { token, ...user } = response.data;
-      localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(user);
+      if (token) {
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(user);
+      }
       return { success: true };
     } catch (error) {
       return { 
@@ -100,6 +122,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyEmail = async (email, otp) => {
+    try {
+      const response = await api.post('/auth/verify-email', { email, otp });
+      const { token, ...userData } = response.data;
+      localStorage.setItem('token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(userData);
+      return { success: true, message: 'Email verified successfully.' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Verification failed',
+      };
+    }
+  };
+
+  const resendVerificationOtp = async (email) => {
+    try {
+      const response = await api.post('/auth/resend-verification', { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to resend code',
+      };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -108,6 +158,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     forgotPassword,
     resetPassword,
+    verifyEmail,
+    resendVerificationOtp,
   };
 
   return (

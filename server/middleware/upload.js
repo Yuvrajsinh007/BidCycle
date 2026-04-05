@@ -33,8 +33,8 @@ const storage = new CloudinaryStorage({
 
     return {
       folder: folder,
-      resource_type: resource_type, // Important for videos/docs
-      // Remove allowed_formats to accept all (or specify list: ['jpg', 'png', 'mp4', 'pdf', ...])
+      resource_type: 'auto', // Important for smoothly handling images, videos, docs
+      // Remove allowed_formats to accept all
       public_id: `${file.fieldname}-${Date.now()}`
     };
   }

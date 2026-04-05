@@ -1,13 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Mail, Lock, ArrowRight, Loader, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Gavel, AlertCircle } from "lucide-react";
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -15,12 +12,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,6 +23,8 @@ const Login = () => {
       const result = await login(formData.email, formData.password);
       if (result.success) {
         navigate("/market");
+      } else if (result.requiresVerification) {
+        navigate("/verify-otp", { state: { email: result.email, type: 'registration' } });
       } else {
         setError(result.message);
       }
@@ -42,58 +36,64 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Left Side - Image/Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-indigo-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-800 opacity-90 z-10"></div>
+    <div className="flex flex-col lg:flex-row min-h-screen w-full bg-slate-50">
+      
+      {/* LEFT: Branding/Image — Sticky on desktop */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-black lg:h-screen lg:sticky lg:top-0 overflow-hidden shadow-2xl">
         <img 
           src="https://images.unsplash.com/photo-1529154691717-3306083d86e5?q=80&w=2070&auto=format&fit=crop" 
-          alt="Auction Background" 
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Abstract Architecture" 
+          className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity"
         />
-        <div className="relative z-20 flex flex-col justify-between p-12 h-full text-white">
-          <div className="text-2xl font-bold tracking-wider">BidCycle</div>
-          <div>
-            <h2 className="text-4xl font-extrabold mb-6">Discover Extraordinary Items</h2>
-            <p className="text-lg text-indigo-100 max-w-md">
-              Join the world's most trusted marketplace for auctions. Bid, sell, and win with confidence.
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50" />
+        
+        {/* Added padding top to avoid hiding under the Navbar */}
+        <div className="relative z-10 flex flex-col justify-between p-12 lg:p-16 h-full text-white w-full pt-28 lg:pt-32 pb-12">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 w-fit hover:opacity-90 transition-opacity">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                  <Gavel className="w-5 h-5 text-black" />
+              </div>
+              <span className="text-2xl font-black tracking-tight text-white drop-shadow-md">BidCycle</span>
+          </Link>
+
+          <div className="mb-10">
+            <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-6 leading-tight drop-shadow-lg">
+              Unlock the <br /> extraordinary.
+            </h1>
+            <p className="text-lg text-slate-300 max-w-md font-medium drop-shadow-md">
+              Access the premier global marketplace for verified auctions. Your next great find awaits.
             </p>
           </div>
-          <div className="text-sm text-indigo-200">© {new Date().getFullYear()} BidCycle Inc.</div>
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
-        <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Please sign in to your account
-            </p>
+      {/* RIGHT: Auth Form — Naturally scrollable */}
+      <div className="w-full lg:w-1/2 flex flex-col p-6 lg:p-12 pt-20 lg:pt-28 pb-12 min-h-screen bg-slate-50">
+        
+        {/* m-auto ensures it centers vertically if there's room, but pushes down gracefully if not */}
+        <div className="w-full max-w-md m-auto bg-white p-8 sm:p-12 rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 animate-fadeIn relative z-10">
+          
+          <div className="mb-10 text-center lg:text-left">
+             <h2 className="text-3xl font-black text-slate-900 mb-2">Welcome Back</h2>
+             <p className="text-slate-500 font-medium">Enter your credentials to access your account.</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
+            <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100 flex items-start gap-3">
+               <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+               <p className="text-sm font-bold text-red-700">{error}</p>
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-5">
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Email</label>
                 <div className="relative">
-                  {/* Added z-20 here to keep icon on top */}
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
-                    <Mail className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
                     name="email"
@@ -101,18 +101,17 @@ const Login = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
-                    placeholder="Email Address"
+                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
+                    placeholder="name@company.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Password</label>
                 <div className="relative">
-                  {/* Added z-20 here to keep icon on top */}
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
-                    <Lock className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
                     name="password"
@@ -120,71 +119,47 @@ const Login = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="appearance-none relative block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                    className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    /* Added z-20 here so button stays clickable/visible when input is focused */
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none z-20"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                <div className="text-right mt-2">
+                  <Link to="/forgot-password" className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
+
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                {loading ? (
-                  <Loader className="animate-spin h-5 w-5 text-white" />
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-70 disabled:scale-100 transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
+            >
+              {loading ? <span className="animate-pulse">Signing in...</span> : <>Sign In <ArrowRight className="w-5 h-5 ml-1" /></>}
+            </button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">New to BidCycle?</span>
-              </div>
-            </div>
-            <div className="mt-6">
-              <Link
-                to="/register"
-                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all"
-              >
-                Create an Account
+          <div className="mt-8 pt-8 border-t border-slate-100 text-center">
+            <p className="text-slate-500 font-medium">
+              Don't have an account?{" "}
+              <Link to="/register" className="font-bold text-slate-900 hover:text-teal-500 transition-colors">
+                Create Account
               </Link>
-            </div>
+            </p>
           </div>
+
         </div>
       </div>
+      
     </div>
   );
 };

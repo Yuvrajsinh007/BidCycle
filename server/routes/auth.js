@@ -9,7 +9,9 @@ const {
   uploadProfilePic, 
   deleteAccount,
   forgotPassword, 
-  resetPassword 
+  resetPassword,
+  verifyEmail,
+  resendVerification
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -17,6 +19,8 @@ const upload = require('../middleware/upload');
 // Public routes
 router.post('/register', register);
 router.post('/login', login);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', forgotPassword);
 
 // ✅ FIX: Changed from POST to PUT to match frontend update logic

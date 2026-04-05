@@ -1,29 +1,30 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  Loader, 
-  Eye, 
-  EyeOff,
-  Phone,
-  MapPin,
-  FileText
-} from "lucide-react";
+import { User, Mail, Lock, ArrowRight, Eye, EyeOff, Phone, MapPin, FileText, Gavel, AlertCircle } from "lucide-react";
+
+const InputField = ({ label, icon: Icon, type = "text", ...rest }) => (
+  <div>
+    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{label}</label>
+    <div className="relative">
+      {Icon && (
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Icon className="h-5 w-5 text-slate-400" />
+        </div>
+      )}
+      <input
+        type={type}
+        className={`w-full ${Icon ? 'pl-11' : 'pl-4'} pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all`}
+        {...rest}
+      />
+    </div>
+  </div>
+);
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    bio: "",
-    password: "",
-    confirmPassword: "",
-    role: "Buyer",
+    name: "", email: "", phone: "", address: "",
+    bio: "", password: "", confirmPassword: "", role: "Buyer",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,284 +34,156 @@ const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
-    }
+    if (formData.password !== formData.confirmPassword) return setError("Passwords do not match.");
+    if (formData.password.length < 6) return setError("Password must be at least 6 characters long.");
 
     setLoading(true);
-
     try {
       // eslint-disable-next-line no-unused-vars
       const { confirmPassword, ...registerData } = formData;
       const result = await register(registerData);
       if (result.success) {
-        navigate("/market");
+        if (result.requiresVerification) {
+          navigate("/verify-otp", { state: { email: result.email, type: 'registration' } });
+        } else {
+          navigate("/market");
+        }
       } else {
         setError(result.message);
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-       {/* Left Side - Image/Branding */}
-       <div className="hidden lg:flex lg:w-1/2 bg-indigo-900 relative overflow-hidden fixed top-0 bottom-0 left-0">
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900 to-indigo-800 opacity-90 z-10"></div>
+    <div className="flex flex-col lg:flex-row min-h-screen w-full bg-slate-50">
+       
+       {/* LEFT: Branding/Image — Sticky on desktop */}
+       <div className="hidden lg:flex lg:w-1/2 relative bg-black lg:h-screen lg:sticky lg:top-0 overflow-hidden shadow-2xl">
         <img 
           src="https://images.unsplash.com/photo-1550537687-c913840e89ae?q=80&w=2071&auto=format&fit=crop" 
-          alt="Registration Background" 
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Architecture" 
+          className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity"
         />
-        <div className="relative z-20 flex flex-col justify-between p-12 h-full text-white">
-          <div className="text-2xl font-bold tracking-wider">BidCycle</div>
-          <div>
-            <h2 className="text-4xl font-extrabold mb-6">Join the Community</h2>
-            <p className="text-lg text-indigo-100 max-w-md">
-              Create an account today to start bidding on exclusive items or selling your own treasures to a global audience.
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/60" />
+        
+        {/* Added padding top to avoid hiding under the Navbar */}
+        <div className="relative z-10 flex flex-col justify-between p-12 lg:p-16 h-full text-white w-full pt-28 lg:pt-32 pb-12">
+          <Link to="/" className="flex items-center gap-3 w-fit hover:opacity-90 transition-opacity">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                  <Gavel className="w-5 h-5 text-black" />
+              </div>
+              <span className="text-2xl font-black tracking-tight text-white drop-shadow-md">BidCycle</span>
+          </Link>
+
+          <div className="mb-10">
+            <h1 className="text-5xl lg:text-6xl font-black tracking-tight mb-6 leading-tight drop-shadow-lg">
+              Join the <br /> elite network.
+            </h1>
+            <p className="text-lg text-slate-300 max-w-md font-medium drop-shadow-md">
+              Create your account today to access global verified auctions or list your own premium assets.
             </p>
           </div>
-          <div className="text-sm text-indigo-200">© {new Date().getFullYear()} BidCycle Inc.</div>
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 ml-auto flex items-center justify-center p-8 bg-gray-50 min-h-screen">
-        <div className="w-full max-w-lg space-y-6 bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-gray-100 my-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">Create Account</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Start your journey with BidCycle
-            </p>
+      {/* RIGHT: Form — Naturally scrollable */}
+      <div className="w-full lg:w-1/2 flex flex-col p-6 lg:p-12 pt-20 lg:pt-28 pb-12 min-h-screen bg-slate-50">
+        
+        {/* Removed fixed height margins so standard layout dictates size smoothly */}
+        <div className="w-full max-w-lg m-auto bg-white p-8 sm:p-10 rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 animate-fadeIn relative z-10">
+          
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-slate-900 mb-2">Create Account</h2>
+            <p className="text-slate-500 font-medium">Join BidCycle to start bidding or selling.</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center">
-              <span className="text-red-500 mr-2">⚠️</span>
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100 flex items-start gap-3">
+               <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+               <p className="text-sm font-bold text-red-700">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                  placeholder="Full Name"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <InputField label="Full Name" icon={User} name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <InputField label="Email Address" icon={Mail} type="email" name="email" placeholder="name@company.com" value={formData.email} onChange={handleChange} required />
+              <InputField label="Phone Number" icon={Phone} type="tel" name="phone" placeholder="+1 (555) 000-0000" value={formData.phone} onChange={handleChange} required />
             </div>
 
-            {/* Email & Phone Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                    placeholder="Email Address"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                    placeholder="Phone Number"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Address & Role Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+               <InputField label="Address" icon={MapPin} name="address" placeholder="123 Main St, NY" value={formData.address} onChange={handleChange} required />
                <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                    placeholder="Address"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">I want to</label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-3 border border-gray-300 bg-white rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                >
-                  <option value="Buyer">Buy Items</option>
-                  <option value="Seller">Sell Items</option>
-                </select>
-              </div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Account Type</label>
+                  <select
+                    name="role" value={formData.role} onChange={handleChange}
+                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold focus:outline-none focus:border-brand-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="Buyer">Buyer</option>
+                    <option value="Seller">Seller</option>
+                  </select>
+               </div>
             </div>
 
-            {/* Bio */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                <div className="relative">
-                  <div className="absolute top-3 left-3 flex items-start pointer-events-none">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                  </div>
+               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Short Bio</label>
+               <div className="relative">
+                  <div className="absolute top-3 left-0 pl-4 flex items-start pointer-events-none"><FileText className="h-5 w-5 text-slate-400" /></div>
                   <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows="2"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none resize-none"
-                    placeholder="Tell us a little about yourself..."
+                    name="bio" value={formData.bio} onChange={handleChange} rows="2"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all resize-none"
+                    placeholder="Tell us a bit about what you collect or sell..."
                   />
-                </div>
+               </div>
             </div>
 
-            {/* Password & Confirm Password Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Password Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none z-20"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="relative">
+                 <InputField label="Password" icon={Lock} type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute bottom-3 right-4 text-slate-400 hover:text-slate-600 focus:outline-none">
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                 </button>
               </div>
-              
-              {/* Confirm Password Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm</label>
-                <div className="relative">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all outline-none"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none z-20"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
+              <div className="relative">
+                 <InputField label="Confirm Password" icon={Lock} type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required />
+                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute bottom-3 right-4 text-slate-400 hover:text-slate-600 focus:outline-none">
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                 </button>
               </div>
             </div>
 
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-4 focus:ring-indigo-200 transition-all transform active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+              type="submit" disabled={loading}
+              className="w-full py-4 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-70 disabled:scale-100 transform active:scale-[0.98] flex items-center justify-center gap-2 mt-6"
             >
-              {loading ? (
-                 <Loader className="animate-spin h-5 w-5 text-white" />
-              ) : (
-                <>
-                  Create Account <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
+              {loading ? <span className="animate-pulse">Creating Account...</span> : <>Create Account <ArrowRight className="w-5 h-5 ml-1" /></>}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 text-sm">
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-slate-500 font-medium">
               Already have an account?{" "}
-              <Link to="/login" className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
+              <Link to="/login" className="font-bold text-slate-900 hover:text-teal-500 transition-colors">
                 Sign In
               </Link>
             </p>
           </div>
+
         </div>
       </div>
     </div>
   );
 };
-
 
 export default Register;

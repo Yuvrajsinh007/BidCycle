@@ -26,8 +26,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // FIX: Only force logout/refresh if the 401 did NOT come from the login page
+      // This allows the Login.jsx component to show the "Invalid password" message!
+      if (error.config && error.config.url && !error.config.url.includes('login')) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

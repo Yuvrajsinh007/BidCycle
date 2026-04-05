@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Mail, ArrowLeft, Loader, KeyRound } from "lucide-react";
+import { Mail, ArrowLeft, KeyRound, AlertCircle, ArrowRight } from "lucide-react";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -31,57 +31,63 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      {/* Left Side - Visual */}
-      <div className="hidden lg:flex lg:w-1/2 bg-indigo-900 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 opacity-90 z-10"></div>
+    <div className="h-screen flex overflow-hidden">
+      
+      {/* LEFT: Branding/Image — fixed, fills viewport */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-black overflow-hidden flex-shrink-0">
         <img 
           src="https://images.unsplash.com/photo-1555421689-d68471e189f2?auto=format&fit=crop&q=80&w=2070" 
-          alt="Security" 
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Security Vault" 
+          className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity grayscale"
         />
-        <div className="relative z-20 text-center px-12">
-          <h2 className="text-4xl font-bold text-white mb-6">Account Recovery</h2>
-          <p className="text-indigo-100 text-lg max-w-md mx-auto">
-            Don't worry, it happens to the best of us. We'll help you get back into your account in no time.
-          </p>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+        
+        <div className="relative z-10 flex flex-col justify-end p-16 h-full text-white w-full">
+          <div className="mb-10">
+            <h1 className="text-4xl font-black tracking-tight mb-4 leading-tight">
+              Account <br /> Recovery
+            </h1>
+            <p className="text-lg text-slate-400 max-w-sm font-medium">
+              We'll get you back to bidding and selling securely in just a few steps.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <KeyRound className="w-8 h-8 text-indigo-600" />
+      {/* RIGHT: Form — scrollable independently */}
+      <div className="w-full lg:w-1/2 overflow-y-auto bg-slate-50">
+        <div className="flex items-center justify-center min-h-full p-6 sm:p-12 pt-24">
+          <div className="w-full max-w-md bg-white p-8 sm:p-12 rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 animate-fadeIn relative z-10">
+          
+          <div className="mb-10 text-center">
+            <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-brand-100">
+              <KeyRound className="w-8 h-8 text-brand-500" />
             </div>
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Forgot Password?</h2>
-            <p className="text-gray-500">
-              Enter your email address and we'll send you a verification code.
-            </p>
+            <h2 className="text-3xl font-black text-slate-900 mb-2">Forgot Password?</h2>
+            <p className="text-slate-500 font-medium">Enter your email and we'll send a secure code.</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 border-l-4 border-red-500 text-red-700 text-sm flex items-start">
-              <span className="mr-2">⚠️</span>
-              {error}
+            <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100 flex items-start gap-3">
+               <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+               <p className="text-sm font-bold text-red-700">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Email Address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                  placeholder="Email Address"
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
+                  placeholder="name@company.com"
                 />
               </div>
             </div>
@@ -89,25 +95,23 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-70 disabled:scale-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              {loading ? (
-                <Loader className="animate-spin h-5 w-5" />
-              ) : (
-                "Send Verification Code"
-              )}
+              {loading ? <span className="animate-pulse">Sending...</span> : <>Send Code <ArrowRight className="w-5 h-5 ml-1" /></>}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors group"
+              className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors group"
             >
               <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
               Back to Login
             </Link>
           </div>
+          
+        </div>
         </div>
       </div>
     </div>

@@ -1,140 +1,145 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowRight, Shield, Zap, Globe, Trophy } from 'lucide-react';
+import { ArrowRight, Shield, Zap, Globe, Trophy, PlayCircle } from 'lucide-react';
+
+const FeatureCard = ({ icon: Icon, title, description }) => (
+  <div className="relative p-8 bg-slate-900 rounded-3xl border border-slate-800 hover:border-slate-700 transition-colors group">
+    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+       <Icon className="w-32 h-32 text-white" />
+    </div>
+    <div className="relative z-10">
+      <div className="w-14 h-14 rounded-2xl bg-brand-500/10 flex items-center justify-center border border-brand-500/20 mb-6 group-hover:bg-brand-500/20 transition-colors">
+        <Icon className="w-6 h-6 text-brand-400" />
+      </div>
+      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+      <p className="text-slate-400 leading-relaxed font-medium text-sm md:text-base">{description}</p>
+    </div>
+  </div>
+);
 
 const Landing = () => {
   const { user } = useAuth();
-
-  // If user is already logged in, redirect them to the marketplace
-  if (user) {
-    return <Navigate to="/market" replace />;
-  }
+  if (user) return <Navigate to="/market" replace />;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black overflow-hidden font-sans">
+      
+      {/* Abstract Background Elements */}
+      <div className="absolute top-0 inset-x-0 h-screen overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-brand-600/20 blur-[120px]" />
+          <div className="absolute top-[20%] -right-[10%] w-[40%] h-[60%] rounded-full bg-indigo-600/10 blur-[120px]" />
+      </div>
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-            <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-              <div className="sm:text-center lg:text-left">
-                <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-                  <span className="block xl:inline">The world's premier</span>{' '}
-                  <span className="block text-indigo-600 xl:inline">marketplace for auctions</span>
-                </h1>
-                <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                  Discover rare collectibles, unique items, and exclusive deals. BidCycle connects buyers and sellers in a secure, real-time bidding environment.
-                </p>
-                <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-                  <div className="rounded-md shadow">
-                    <Link
-                      to="/register"
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg transition-all hover:shadow-lg"
-                    >
-                      Get Started
-                    </Link>
-                  </div>
-                  <div className="mt-3 sm:mt-0 sm:ml-3">
-                    <Link
-                      to="/login"
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg transition-all"
-                    >
-                      Sign In
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </main>
+      <div className="relative z-10 pt-32 pb-20 lg:pt-48 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-4xl mx-auto space-y-8 animate-fadeIn">
+          
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-slate-300 backdrop-blur-md mb-4">
+             <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" /> The Next Generation of Auctions
           </div>
-        </div>
-        <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2 bg-gray-50">
-          <img
-            className="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full"
-            src="https://images.unsplash.com/photo-1600607686527-6fb886090705?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2000&q=80"
-            alt="Auction Hammer"
-          />
+          
+          <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight leading-[1.1]">
+            Own the extraordinary, <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-indigo-400">
+               bid in real-time.
+            </span>
+          </h1>
+          
+          <p className="text-lg sm:text-xl text-slate-400 font-medium max-w-2xl mx-auto">
+            Discover rare collectibles, exclusive assets, and high-value items. BidCycle provides a secure, instantaneous infrastructure for premier auctions globally.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <Link
+              to="/register"
+              className="w-full sm:w-auto px-8 py-4 bg-white text-black font-black rounded-full hover:bg-slate-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:scale-105"
+            >
+              Start Bidding <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              to="/market"
+              className="w-full sm:w-auto px-8 py-4 bg-white/5 text-white font-bold rounded-full hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-2"
+            >
+              <PlayCircle className="w-5 h-5 text-slate-400" /> Browse Marketplace
+            </Link>
+          </div>
+          
+          <p className="text-sm font-semibold text-slate-600 pt-4">No credit card required to explore.</p>
         </div>
       </div>
 
-      {/* Features Section */}
-      <div className="py-12 bg-gray-50">
+      {/* Hero Image Showcase */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+         <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl shadow-brand-900/20 aspect-video md:aspect-[21/9] bg-slate-900">
+            <img 
+              src="https://images.unsplash.com/photo-1600607686527-6fb886090705?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+              alt="Auction Experience" 
+              className="w-full h-full object-cover opacity-60 mix-blend-luminosity hover:mix-blend-normal transition-all duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+         </div>
+      </div>
+
+      {/* Features Grid */}
+      <div className="bg-black relative z-10 py-24 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:text-center">
-            <h2 className="text-base text-indigo-600 font-semibold tracking-wide uppercase">Features</h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              Why Choose BidCycle?
-            </p>
+          <div className="text-center md:text-left mb-16">
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">Engineered for Action.</h2>
+            <p className="mt-4 text-slate-400 text-lg max-w-2xl font-medium">Why the world's top collectors and sellers trust BidCycle infrastructure.</p>
           </div>
 
-          <div className="mt-10">
-            <dl className="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-              <div className="relative">
-                <dt>
-                  <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                    <Zap className="h-6 w-6" />
-                  </div>
-                  <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Real-Time Bidding</p>
-                </dt>
-                <dd className="mt-2 ml-16 text-base text-gray-500">
-                  Experience the thrill of live auctions with instant updates. Never miss a deal with our high-performance socket connection.
-                </dd>
-              </div>
-
-              <div className="relative">
-                <dt>
-                  <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                    <Shield className="h-6 w-6" />
-                  </div>
-                  <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Secure Transactions</p>
-                </dt>
-                <dd className="mt-2 ml-16 text-base text-gray-500">
-                  Your security is our priority. We use industry-standard encryption and verified payment processes to keep you safe.
-                </dd>
-              </div>
-
-              <div className="relative">
-                <dt>
-                  <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                    <Globe className="h-6 w-6" />
-                  </div>
-                  <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Global Marketplace</p>
-                </dt>
-                <dd className="mt-2 ml-16 text-base text-gray-500">
-                  Connect with buyers and sellers from around the world. Expand your reach and find items you can't find anywhere else.
-                </dd>
-              </div>
-
-              <div className="relative">
-                <dt>
-                  <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                    <Trophy className="h-6 w-6" />
-                  </div>
-                  <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Premium Auctions</p>
-                </dt>
-                <dd className="mt-2 ml-16 text-base text-gray-500">
-                  Access exclusive, high-value items vetted by our experts. Quality and authenticity guaranteed.
-                </dd>
-              </div>
-            </dl>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+             <FeatureCard 
+                icon={Zap} 
+                title="Sub-second Sync" 
+                description="Built on WebSockets, every bid is broadcast globally in under 50ms ensuring perfect real-time accuracy."
+             />
+             <FeatureCard 
+                icon={Shield} 
+                title="Bank-grade Sec" 
+                description="Encrypted data pipelines and verified seller logic means your assets and bids are perfectly secure."
+             />
+             <FeatureCard 
+                icon={Globe} 
+                title="Global Liquidity" 
+                description="List once, sell globally. Tap into a worldwide network of vetted premium buyers instantly."
+             />
+             <FeatureCard 
+                icon={Trophy} 
+                title="Curated Quality" 
+                description="Our marketplace enforces strict asset guidelines, maintaining a high-signal environment of rare finds."
+             />
           </div>
         </div>
+      </div>
+
+      {/* Footer CTA */}
+      <div className="relative z-10 py-32 bg-slate-900 border-t border-slate-800">
+         <div className="max-w-4xl mx-auto px-4 text-center">
+            <h2 className="text-4xl sm:text-5xl font-black text-white mb-8">Ready to find your next centerpiece?</h2>
+            <Link
+              to="/register"
+              className="px-10 py-5 bg-brand-500 text-white font-black rounded-full hover:bg-brand-600 transition-all inline-block shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-brand-500/50 hover:scale-105"
+            >
+              Create Free Account
+            </Link>
+         </div>
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
-          <div className="flex justify-center space-x-6 md:order-2">
-            <span className="text-gray-400 hover:text-gray-500">
-              © {new Date().getFullYear()} BidCycle, Inc. All rights reserved.
-            </span>
-          </div>
-          <div className="mt-8 md:mt-0 md:order-1">
-            <p className="text-center text-base text-gray-400">
-              Trusted by thousands of bidders worldwide.
+      <footer className="bg-black py-12 border-t border-white/5 relative z-10">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+               <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
+                  <ArrowRight className="w-5 h-5 text-black" />
+               </div>
+               <span className="text-xl font-bold text-white tracking-tight">BidCycle</span>
+            </div>
+            <p className="text-slate-500 text-sm font-medium">
+              © {new Date().getFullYear()} BidCycle Inc. Elevating the marketplace.
             </p>
-          </div>
-        </div>
+         </div>
       </footer>
     </div>
   );

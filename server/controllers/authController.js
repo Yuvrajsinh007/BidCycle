@@ -23,6 +23,8 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const otp = generateOTP();
+
     const user = await User.create({
       name,
       email,
@@ -30,19 +32,23 @@ exports.register = async (req, res) => {
       role: role || 'Buyer',
       phone,
       address,
-      bio
+      bio,
+      isVerified: false,
+      otp: otp,
+      otpExpiry: Date.now() + 10 * 60 * 1000 // 10 minutes
     });
 
     if (user) {
+      const emailResult = await sendOtpEmail(user.email, otp, false);
+      if (!emailResult.success) {
+        console.error('Failed to send verification email during registration:', emailResult.error);
+        // We still successfully registered them, but email failed to send. They can resend it.
+      }
+
       res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        address: user.address,
-        bio: user.bio,
-        token: generateToken(user._id),
+        message: 'Registration successful. Please verify your email.',
+        requiresVerification: true,
+        email: user.email
       });
     }
   } catch (error) {
@@ -57,8 +63,9 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select('+password');
+    
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(404).json({ message: 'User does not exist' });
     }
 
     if (user.isBanned) {
@@ -66,8 +73,17 @@ exports.login = async (req, res) => {
     }
 
     const isMatch = await user.matchPassword(password);
+    
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        message: 'Please verify your email first', 
+        requiresVerification: true, 
+        email: user.email 
+      });
     }
 
     res.json({
@@ -87,6 +103,50 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const user = await User.findOne({ email }).select('+password');
+//     if (!user) {
+//       return res.status(401).json({ message: 'Invalid credentials' });
+//     }
+
+//     if (user.isBanned) {
+//       return res.status(403).json({ message: 'Your account has been suspended' });
+//     }
+
+//     const isMatch = await user.matchPassword(password);
+//     if (!isMatch) {
+//       return res.status(401).json({ message: 'Invalid credentials' });
+//     }
+
+//     if (!user.isVerified) {
+//       return res.status(403).json({ 
+//         message: 'Please verify your email first', 
+//         requiresVerification: true, 
+//         email: user.email 
+//       });
+//     }
+
+//     res.json({
+//       _id: user._id,
+//       name: user.name,
+//       email: user.email,
+//       role: user.role,
+//       phone: user.phone,
+//       address: user.address,
+//       bio: user.bio,
+//       isBanned: user.isBanned,
+//       profilePic: user.profilePic,
+//       token: generateToken(user._id),
+//     });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// };
 
 // Get current user
 exports.getMe = async (req, res) => {
@@ -286,6 +346,67 @@ exports.resetPassword = async (req, res) => {
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Verify Email
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isVerified) return res.status(400).json({ message: 'User is already verified' });
+    if (!user.otp || user.otp !== otp) return res.status(400).json({ message: 'Invalid OTP code' });
+    if (user.otpExpiry < Date.now()) return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      address: user.address,
+      bio: user.bio,
+      isBanned: user.isBanned,
+      profilePic: user.profilePic,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Resend Verification OTP
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isVerified) return res.status(400).json({ message: 'User is already verified' });
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    const emailResult = await sendOtpEmail(user.email, otp, false);
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error);
+      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
+    }
+
+    res.json({ message: 'A new verification code has been sent to your email.' });
+  } catch (error) {
+    console.error('Resend verification error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -21,6 +21,7 @@ const itemSchema = new mongoose.Schema({
     default: 'active' 
   },
   createdAt: { type: Date, default: Date.now },
+  launchTime: { type: Date, required: true, default: Date.now },
   endTime: { type: Date, required: true },
 });
 

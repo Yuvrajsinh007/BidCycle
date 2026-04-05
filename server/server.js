@@ -6,6 +6,7 @@ const http = require('http'); // 1. Import HTTP
 const { Server } = require('socket.io'); // 2. Import Socket.io
 const cron = require('node-cron');
 const connectDB = require('./config/db');
+const startAuctionCronJob = require('./utils/auctionCron');
 
 // Models
 const Item = require('./models/Item');
@@ -117,7 +118,7 @@ cron.schedule('* * * * *', async () => {
            finalPrice: item.currentBid
         });
 
-        console.log(`Auction expired: Item ${item.title} had no bids.`);
+        // console.log(`Auction expired: Item ${item.title} had no bids.`);
       }
       await item.save();
     }
@@ -141,6 +142,8 @@ app.use('/api/payment', paymentRoutes);
 app.get('/', (req, res) => {
   res.send('Online Auction API is running');
 });
+
+startAuctionCronJob();
 
 // 6. IMPORTANT: Listen on 'server', not 'app'
 server.listen(PORT, () => {

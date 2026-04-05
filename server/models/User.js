@@ -21,6 +21,9 @@ const userSchema = new mongoose.Schema({
   address: { type: String },
   bio: { type: String },
   isBanned: { type: Boolean, default: false },
+  isVerified: { type: Boolean, default: false },
+  otp: { type: String },
+  otpExpiry: { type: Date },
   createdAt: { type: Date, default: Date.now },
   lastLogin: { type: Date },
 });
