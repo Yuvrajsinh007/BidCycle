@@ -31,14 +31,22 @@ export function useAuctionSocket(itemId, callbacks) {
       }
     };
 
+    const handleAuctionExtended = (data) => {
+      if (data.itemId === itemId && callbacks.onAuctionExtended) {
+        callbacks.onAuctionExtended(data);
+      }
+    };
+
     socket.on('bid_update', handleBidUpdate);
     socket.on('auction_ended', handleAuctionEnd);
     socket.on('auction_started', handleAuctionStart);
+    socket.on('auction_extended', handleAuctionExtended);
 
     return () => {
       socket.off('bid_update', handleBidUpdate);
       socket.off('auction_ended', handleAuctionEnd);
       socket.off('auction_started', handleAuctionStart);
+      socket.off('auction_extended', handleAuctionExtended);
     };
   }, [itemId, callbacks]);
 

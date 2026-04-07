@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { IndianRupee, User, Tag, ShoppingBag, Gavel, Package } from 'lucide-react';
+import { IndianRupee, User, Tag, ShoppingBag, Gavel, Package, BadgeCheck, Star } from 'lucide-react';
 import AuctionTimer from './AuctionTimer';
 
 const statusConfig = {
@@ -128,8 +128,17 @@ const AuctionCard = ({ item }) => {
               <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
                 <User className="w-3 h-3 text-slate-400" />
               </div>
-              <span className="truncate max-w-[120px] font-medium">{item.seller?.name || 'Unknown'}</span>
+              <span className="truncate max-w-[100px] font-medium flex items-center gap-1">
+                 {item.seller?.name || 'Unknown'}
+                 {item.seller?.kycStatus === 'approved' && <BadgeCheck className="w-3.5 h-3.5 text-brand-500" title="Verified Seller" />}
+              </span>
             </div>
+            {item.seller?.totalReviews > 0 && (
+               <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                  {item.seller.averageRating}
+               </div>
+            )}
           </div>
         </div>
       </div>

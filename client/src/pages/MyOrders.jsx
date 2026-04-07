@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Package, ShoppingBag, Eye, Calendar, Clock, 
-  CheckCircle2, Truck, Check, AlertCircle 
+  Package, ShoppingBag, Calendar, Clock, 
+  CheckCircle2, Truck, Check, AlertCircle, Star
 } from 'lucide-react';
 
 const MyOrders = () => {
@@ -138,6 +138,13 @@ const MyOrders = () => {
                       </td>
                       <td className="px-8 py-6 text-right">
                         {getStatusBadge(order.status)}
+                        {order.status === 'delivered' && (
+                           <div className="mt-3">
+                              <Link to={`/seller/${order.seller?._id || order.seller || order.item?.seller?._id || order.item?.seller}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border border-yellow-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm">
+                                 <Star className="w-3 h-3 fill-current" /> Rate Seller
+                              </Link>
+                           </div>
+                        )}
                       </td>
                     </tr>
                   ))}

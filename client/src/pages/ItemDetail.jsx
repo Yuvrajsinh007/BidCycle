@@ -9,7 +9,7 @@ import {
   IndianRupee, User, Tag, AlertCircle, CheckCircle2,
   Trophy, Gavel, History, Info,
   Heart, MessageCircle, ChevronRight, Share2,
-  ShoppingBag, Package, Minus, Plus
+  ShoppingBag, Package, Minus, Plus, BadgeCheck, Star
 } from 'lucide-react';
 
 const ItemDetail = () => {
@@ -116,19 +116,18 @@ const ItemDetail = () => {
     }
   };
 
-  // Buy Now handler for direct items
-  const handleBuyNow = async () => {
+  // Add to Cart handler for direct items
+  const handleAddToCart = async () => {
     setError(""); setSuccess("");
     if (!user) return navigate("/login");
 
     try {
       setSubmitting(true);
-      const res = await api.post(`/orders/${id}`, { quantity: buyQuantity });
-      setSuccess(res.data.message || "Order placed!");
-      fetchItemDetails();
-      setTimeout(() => setSuccess(""), 5000);
+      await api.post(`/cart/add`, { itemId: id, quantity: buyQuantity });
+      setSuccess("Item added to Cart!");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to place order.");
+      setError(err.response?.data?.message || "Failed to add to cart.");
     } finally {
       setSubmitting(false);
     }
@@ -261,9 +260,18 @@ const ItemDetail = () => {
                      </div>
                      <div>
                        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-0.5">Listed By</p>
-                       <Link to={`/seller/${item.seller?._id}`} className="text-lg font-bold text-slate-900 hover:text-brand-600 transition-colors">
+                       <Link to={`/seller/${item.seller?._id}`} className="text-lg font-bold text-slate-900 hover:text-brand-600 transition-colors flex items-center gap-1">
                           {item.seller?.name || 'Unknown Seller'}
+                          {item.seller?.kycStatus === 'approved' && (
+                             <BadgeCheck className="w-5 h-5 text-brand-500 ml-1" title="Verified Seller" />
+                          )}
                        </Link>
+                       {item.seller?.totalReviews > 0 && (
+                          <div className="flex items-center gap-1 mt-1 text-sm font-bold text-slate-600">
+                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                             {item.seller.averageRating} <span className="font-medium text-slate-400">({item.seller.totalReviews})</span>
+                          </div>
+                       )}
                      </div>
                   </div>
                   {isOwner ? (
@@ -392,12 +400,12 @@ const ItemDetail = () => {
                        </div>
 
                        <button
-                         onClick={handleBuyNow}
+                         onClick={handleAddToCart}
                          disabled={submitting}
                          className="w-full py-4 bg-brand-600 text-white font-black text-lg rounded-xl hover:bg-brand-700 transition-all shadow-xl shadow-brand-200/50 disabled:opacity-70 transform active:scale-[0.98] flex items-center justify-center gap-2"
                        >
                          <ShoppingBag className="w-5 h-5" />
-                         {submitting ? <span className="animate-pulse">Processing...</span> : "Buy Now"}
+                         {submitting ? <span className="animate-pulse">Adding...</span> : "Add to Cart"}
                        </button>
                      </div>
                    )
@@ -444,7 +452,7 @@ const ItemDetail = () => {
                                min={(item.currentBid || item.basePrice) + 1}
                                required
                                disabled={submitting}
-                               placeholder={`Min. ₹${(item.currentBid || item.basePrice) + 1}`}
+                               placeholder={`Max Bid (Min. ₹${(item.currentBid || item.basePrice) + 1})`}
                                className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-lg font-black text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                             />
                          </div>
@@ -453,9 +461,11 @@ const ItemDetail = () => {
                             disabled={submitting}
                             className="w-full py-4 bg-slate-900 text-white font-black text-lg rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 disabled:opacity-70 disabled:scale-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
                          >
-                            {submitting ? <span className="animate-pulse">Placing Bid...</span> : "Place Bid"}
+                            {submitting ? <span className="animate-pulse">Placing Auto-Bid...</span> : "Place Auto-Bid"}
                          </button>
-                         <p className="text-xs font-semibold text-center text-slate-400 uppercase tracking-widest pt-2">Proxy Bidding Active</p>
+                         <p className="text-xs font-semibold text-center text-slate-500 max-w-xs mx-auto leading-relaxed pt-2">
+                            Set your maximum willing price. Our system will automatically bid on your behalf just enough to keep you in the lead.
+                         </p>
                      </form>
                    )
                  )}

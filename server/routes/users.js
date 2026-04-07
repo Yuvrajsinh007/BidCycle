@@ -8,6 +8,7 @@ const {
     editReview,
     deleteReview,
     getSellerProfile,
+    submitKyc
 } = require('../controllers/userController');
 
 // All routes are protected
@@ -19,5 +20,8 @@ router.post('/reviews', protect, addReview);
 router.put('/reviews/:id', protect, editReview);
 router.delete('/reviews/:id', protect, deleteReview);
 router.get('/profile/:id', getSellerProfile);
+
+// KYC
+router.post('/kyc', protect, submitKyc);
 
 module.exports = router;

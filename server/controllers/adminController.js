@@ -367,3 +367,50 @@ exports.deleteBid = async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 };
+
+// Get KYC requests (pending, approved, rejected)
+exports.getKycRequests = async (req, res) => {
+  try {
+    const status = req.query.status || 'pending';
+    const users = await User.find({ kycStatus: status })
+      .select('name email kycStatus kycDocType kycDocUrl createdAt')
+      .sort({ createdAt: -1 });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Get KYC requests error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Approve or Reject KYC
+exports.updateKycStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.body; // 'approved' or 'rejected'
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be approved or rejected.' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    user.kycStatus = status;
+    // If approved, maybe set isVerified to true as well. (isVerified usually meant email, but we can set it to true to mark fully trusted).
+    if (status === 'approved') {
+      user.isVerified = true; 
+    } else {
+      user.isVerified = false;
+    }
+
+    await user.save();
+
+    res.json({ message: `User KYC ${status} successfully.`, user: { _id: user._id, kycStatus: user.kycStatus } });
+  } catch (error) {
+    console.error('Update KYC error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};

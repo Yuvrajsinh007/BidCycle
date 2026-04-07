@@ -16,12 +16,24 @@ const userSchema = new mongoose.Schema({
     ref: 'Item' 
   }],
   // ----------------
+  // --- KYC & TRUST FIELDS ---
+  kycStatus: { 
+    type: String, 
+    enum: ['unverified', 'pending', 'approved', 'rejected'], 
+    default: 'unverified' 
+  },
+  kycDocType: { type: String },
+  kycDocUrl: { type: String },
+  averageRating: { type: Number, default: 0 },
+  totalReviews: { type: Number, default: 0 },
+  // -------------------------
+
   profilePic: { type: String },
   phone: { type: String },
   address: { type: String },
   bio: { type: String },
   isBanned: { type: Boolean, default: false },
-  isVerified: { type: Boolean, default: false },
+  isVerified: { type: Boolean, default: false }, // email verification
   otp: { type: String },
   otpExpiry: { type: Date },
   createdAt: { type: Date, default: Date.now },

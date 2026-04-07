@@ -23,5 +23,8 @@ router.delete('/items/:itemId', adminController.deleteItem);
 router.get('/bids', adminController.getAllBids);
 router.delete('/bids/:bidId', adminController.deleteBid);
 
-module.exports = router;
+// KYC management
+router.get('/kyc', adminController.getKycRequests);
+router.put('/kyc/:userId', adminController.updateKycStatus);
 
+module.exports = router;

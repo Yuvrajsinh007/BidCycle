@@ -4,8 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   LayoutDashboard, Users, Package, Gavel, 
   ChevronDown, LogOut, User as UserIcon, 
-  ShoppingBag, Plus, Heart, Menu, X, List
+  ShoppingBag, Plus, Heart, Menu, X, List, Bell
 } from 'lucide-react';
+import api from '../services/api';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -23,6 +24,39 @@ const Navbar = () => {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    if (user && user.role === 'Buyer') {
+      fetchNotifications();
+      // Poll every 5 seconds for new notifications to ensure live updates without page refresh
+      const interval = setInterval(fetchNotifications, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data } = await api.get('/notifications');
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.read).length);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/notifications/read');
+      setUnreadCount(0);
+      setNotifications(notifications.map(n => ({...n, read: true})));
+    } catch (error) {
+      console.error('Failed to mark notifications', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -73,6 +107,9 @@ const Navbar = () => {
                     <Link to="/my-orders" className="px-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 border border-transparent">
                       <List className="w-4 h-4" /> My Orders
                     </Link>
+                    <Link to="/cart" className="px-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 border border-transparent">
+                      <ShoppingBag className="w-4 h-4" /> Cart
+                    </Link>
                   </>
                 )}
 
@@ -102,6 +139,48 @@ const Navbar = () => {
                       </Link>
                     </div>
                   </div>
+                )}
+
+                {/* Notification Dropdown (Buyers Only) */}
+                {user.role === 'Buyer' && (
+                <div className="relative group ml-1 flex items-center">
+                   <button 
+                      className="relative p-2 text-slate-400 hover:text-brand-600 transition-colors focus:outline-none"
+                      onMouseEnter={() => {
+                        setShowNotifications(true);
+                        if (unreadCount > 0) markAllAsRead();
+                      }}
+                   >
+                      <Bell className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                      )}
+                   </button>
+                   
+                   {showNotifications && (
+                      <div 
+                         className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-fadeIn"
+                         onMouseLeave={() => setShowNotifications(false)}
+                      >
+                         <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center mb-2">
+                             <span className="font-bold text-slate-900">Notifications</span>
+                             {unreadCount > 0 && <span className="text-[10px] font-black uppercase text-brand-600 bg-brand-50 px-2 py-0.5 rounded-lg">{unreadCount} New</span>}
+                         </div>
+                         <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                             {notifications.length === 0 ? (
+                                <div className="text-center p-6 text-slate-400 font-medium text-sm">No notifications yet</div>
+                             ) : (
+                                notifications.map(n => (
+                                   <div key={n._id} className={`px-4 py-3 hover:bg-slate-50 border-l-2 transition-colors ${!n.read ? 'border-brand-500 bg-brand-50/20' : 'border-transparent'}`}>
+                                      <p className="text-sm font-bold text-slate-800">{n.message}</p>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
+                                   </div>
+                                ))
+                             )}
+                         </div>
+                      </div>
+                   )}
+                </div>
                 )}
 
                 {/* Profile Dropdown */}

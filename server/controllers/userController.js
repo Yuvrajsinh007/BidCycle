@@ -79,7 +79,7 @@ exports.addReview = async (req, res) => {
 exports.getSellerProfile = async (req, res) => {
   try {
     const sellerId = req.params.id;
-    const seller = await User.findById(sellerId).select('name email profilePic createdAt');
+    const seller = await User.findById(sellerId).select('name email profilePic createdAt kycStatus');
     
     if (!seller) return res.status(404).json({ message: 'Seller not found' });
 
@@ -163,6 +163,28 @@ exports.deleteReview = async (req, res) => {
     res.json({ message: 'Review deleted' });
   } catch (error) {
     console.error('Delete review error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Submit KYC
+exports.submitKyc = async (req, res) => {
+  try {
+    const { docType, docUrl } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!docType || !docUrl) {
+      return res.status(400).json({ message: 'Document type and URL are required' });
+    }
+
+    user.kycDocType = docType;
+    user.kycDocUrl = docUrl;
+    user.kycStatus = 'pending';
+    await user.save();
+
+    res.json({ message: 'KYC submitted successfully. Pending admin approval.', kycStatus: user.kycStatus });
+  } catch (error) {
+    console.error('KYC submission error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -25,7 +25,7 @@ const sendAuctionResultEmails = async (item, winningBid) => {
         
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
            <p style="margin:0; font-size: 14px; color: #64748b;">Final Sale Price</p>
-           <p style="margin:5px 0 0 0; font-size: 24px; font-weight: bold; color: #0f172a;">$${winningBid.amount}</p>
+           <p style="margin:5px 0 0 0; font-size: 24px; font-weight: bold; color: #0f172a;">₹${winningBid.amount}</p>
         </div>
 
         <p><strong>Winner:</strong> ${winningBid.bidder.name}</p>
@@ -53,7 +53,7 @@ const sendAuctionResultEmails = async (item, winningBid) => {
           
           <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
              <p style="margin:0; font-size: 14px; color: #065f46;">Winning Bid Amount</p>
-             <p style="margin:5px 0 0 0; font-size: 24px; font-weight: bold; color: #059669;">$${winningBid.amount}</p>
+             <p style="margin:5px 0 0 0; font-size: 24px; font-weight: bold; color: #059669;">₹${winningBid.amount}</p>
           </div>
 
           <p>The item is now yours! Please check your dashboard to contact the seller and arrange for delivery/payment.</p>
@@ -74,7 +74,7 @@ const sendAuctionResultEmails = async (item, winningBid) => {
           <p>Unfortunately, you did not place the highest bid this time.</p>
           
           <ul style="background: #f9fafb; padding: 15px 20px; border-radius: 8px; list-style: none; margin: 20px 0; border: 1px solid #e2e8f0;">
-            <li style="margin-bottom: 5px; color: #475569;"><strong>Final Price:</strong> $${winningBid.amount}</li>
+            <li style="margin-bottom: 5px; color: #475569;"><strong>Final Price:</strong> ₹${winningBid.amount}</li>
             <li style="color: #475569;"><strong>Winner:</strong> ${winningBid.bidder.name}</li>
           </ul>
 
@@ -244,7 +244,7 @@ exports.addItem = async (req, res) => {
         status: 'available'
       });
 
-      await item.populate('seller', 'name email');
+      await item.populate('seller', 'name email kycStatus averageRating totalReviews');
       const doc = item.toJSON();
       doc.status = getComputedStatus(item);
       return res.status(201).json(doc);
@@ -287,7 +287,7 @@ exports.addItem = async (req, res) => {
       status
     });
     
-    await item.populate('seller', 'name email');
+    await item.populate('seller', 'name email kycStatus averageRating totalReviews');
     const doc = item.toJSON();
     doc.status = getComputedStatus(item);
     res.status(201).json(doc);
@@ -309,7 +309,7 @@ exports.getAllItems = async (req, res) => {
     }
 
     let items = await Item.find(query)
-      .populate('seller', 'name')
+      .populate('seller', 'name kycStatus averageRating totalReviews')
       .populate('winner', 'name')
       .sort({ createdAt: -1 });
 
@@ -349,7 +349,7 @@ exports.getAllItems = async (req, res) => {
 exports.getItemById = async (req, res) => {
   try {
     const item = await Item.findById(req.params.id)
-      .populate('seller', 'name email')
+      .populate('seller', 'name email kycStatus averageRating totalReviews')
       .populate('winner', 'name email');
     if (!item) return res.status(404).json({ message: 'Item not found.' });
     const doc = item.toJSON();
@@ -361,7 +361,7 @@ exports.getItemById = async (req, res) => {
 exports.getMyItems = async (req, res) => {
   try {
     const items = await Item.find({ seller: req.user._id })
-      .populate('seller', 'name email')
+      .populate('seller', 'name email kycStatus averageRating totalReviews')
       .sort({ createdAt: -1 });
     const compiledItems = items.map(i => {
       const doc = i.toJSON();

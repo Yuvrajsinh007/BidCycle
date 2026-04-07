@@ -2,6 +2,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Item = require('../models/Item');
 const Transaction = require('../models/Transaction');
+const Cart = require('../models/Cart');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -30,6 +31,36 @@ exports.createOrder = async (req, res) => {
       amount: order.amount,
       currency: order.currency,
       name: item.title
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createCartPayment = async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ user: req.user._id }).populate('items.item');
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: "Cart empty" });
+    }
+    
+    let grandTotal = 0;
+    cart.items.forEach(cartItem => {
+       grandTotal += cartItem.item.price * cartItem.quantity;
+    });
+
+    const options = {
+      amount: grandTotal * 100,
+      currency: "INR",
+      receipt: `cart_${Date.now()}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    res.status(200).json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

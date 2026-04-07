@@ -22,8 +22,11 @@ import AdminItems from './pages/AdminItems';
 import AdminBids from './pages/AdminBids';
 import Account from './pages/Account';
 import AdminAccount from './pages/AdminAccount';
+import AdminKyc from './pages/AdminKyc';
 import Watchlist from './pages/Watchlist';
 import SellerProfile from './pages/SellerProfile';
+import Cart from './pages/Cart';
+import SellerOrders from './pages/SellerOrders';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -52,7 +55,7 @@ function App() {
           <Navbar />
           <main className="flex-1 pt-0">
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -76,6 +79,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Watchlist />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/cart" 
+                element={
+                  <ProtectedRoute>
+                    <Cart />
                   </ProtectedRoute>
                 } 
               />
@@ -115,6 +126,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MyOrders />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/seller-orders" 
+                element={
+                  <ProtectedRoute allowedRoles={['Seller']}>
+                    <SellerOrders />
                   </ProtectedRoute>
                 } 
               />
@@ -174,6 +193,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <AdminBids />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/kyc" 
+                element={
+                  <ProtectedRoute allowedRoles={['Admin']}>
+                    <AdminKyc />
                   </ProtectedRoute>
                 } 
               />

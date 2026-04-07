@@ -82,6 +82,8 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/chat', chatRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/cart', require('./routes/cart'));
 
 app.get('/', (req, res) => {
   res.send('Online Auction API is running');

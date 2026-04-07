@@ -82,9 +82,11 @@ const SellerProfile = () => {
                <div className="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center text-5xl font-black text-white border-4 border-slate-700 shadow-2xl z-10 relative">
                   {seller.profilePic ? <img src={seller.profilePic} className="w-full h-full object-cover rounded-full" alt="Seller" /> : seller.name.charAt(0).toUpperCase()}
                </div>
-               <div className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-2 rounded-full border-4 border-slate-900 z-20">
-                  <ShieldCheck className="w-5 h-5" />
-               </div>
+               {seller.kycStatus === 'approved' && (
+                  <div className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-2 rounded-full border-4 border-slate-900 z-20">
+                     <ShieldCheck className="w-5 h-5" />
+                  </div>
+               )}
            </div>
            
            <div className="flex-1 text-center md:text-left relative z-10">

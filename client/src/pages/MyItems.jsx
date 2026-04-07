@@ -4,7 +4,7 @@ import api from '../services/api';
 import { 
   Plus, Search, Filter, Trash2, Edit, Eye, Clock, 
   CheckCircle2, XCircle, AlertCircle, Calendar, Gavel,
-  ShoppingBag, Package, Layers
+  ShoppingBag, Layers
 } from 'lucide-react';
 
 const MyItems = () => {

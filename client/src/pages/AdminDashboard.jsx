@@ -77,9 +77,14 @@ const AdminDashboard = () => {
             </h1>
             <p className="text-slate-500 font-medium mt-3 text-lg">Platform metrics & global system health.</p>
           </div>
-          <div className="relative z-10 px-5 py-3 bg-green-50 rounded-xl border border-green-200 text-sm font-bold text-green-700 shadow-sm flex items-center gap-3">
-             <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse ring-4 ring-green-200"></span>
-             All Systems Operational
+          <div className="relative z-10 flex items-center gap-4">
+             <Link to="/admin/kyc" className="px-5 py-3 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-200 text-brand-600 font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                Manage KYC
+             </Link>
+             <div className="px-5 py-3 bg-green-50 rounded-xl border border-green-200 text-sm font-bold text-green-700 shadow-sm flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse ring-4 ring-green-200"></span>
+                All Systems Operational
+             </div>
           </div>
         </div>
 

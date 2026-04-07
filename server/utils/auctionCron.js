@@ -1,6 +1,8 @@
 const cron = require('node-cron');
 const Item = require('../models/Item');
+const User = require('../models/User');
 const { checkAndProcessAuctionStatus } = require('../controllers/itemController');
+const { dispatchNotification } = require('../controllers/notificationController');
 
 let isRunning = false;
 
@@ -57,6 +59,31 @@ const startAuctionCronJob = (io) => {
             console.error(`Failed to process auction ${expiredAuctions[idx]._id}:`, result.reason);
           }
         });
+      }
+
+      // 3. Notify Watchlist Users for items ending in exactly 1 hour (between 60 and 59 mins from now)
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+      const oneHourMinusOneMin = new Date(now.getTime() + 59 * 60 * 1000);
+      
+      const endingSoonItems = await Item.find({
+        status: 'active',
+        endTime: { $lte: oneHourFromNow, $gt: oneHourMinusOneMin }
+      });
+
+      if (endingSoonItems.length > 0) {
+        for (const item of endingSoonItems) {
+           const usersWatching = await User.find({ watchlist: item._id }).select('email');
+           for (const watcher of usersWatching) {
+               await dispatchNotification({
+                   userId: watcher._id,
+                   userEmail: watcher.email,
+                   type: 'watchlist_ending',
+                   message: `An item on your watchlist, "${item.title}", is ending in less than 1 hour. Get your final bids in!`,
+                   relatedItemId: item._id,
+                   subject: `Ending Soon: ${item.title}!`
+               });
+           }
+        }
       }
     } catch (error) {
       console.error('Error in auction cron job:', error);

@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import { 
   Package, ShoppingBag, Gavel, Trophy, CreditCard, 
-  Plus, List, TrendingUp, ArrowRight, Activity
+  Plus, List, TrendingUp, ArrowRight, Activity, Truck
 } from 'lucide-react';
 
 const StatCard = ({ icon: Icon, title, value, colorClass }) => (
@@ -65,6 +65,9 @@ const SellerDashboard = ({ user }) => {
       <div className="flex flex-col sm:flex-row gap-4">
         <Link to="/create-item" className="flex-1 bg-slate-900 text-white p-4 rounded-xl shadow-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 font-bold">
           <Plus className="w-5 h-5" /> Host New Auction
+        </Link>
+        <Link to="/seller-orders" className="flex-1 bg-brand-600 text-white p-4 rounded-xl shadow-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 font-bold">
+          <Truck className="w-5 h-5" /> Fulfill Orders
         </Link>
         <Link to="/my-items" className="flex-1 bg-white border border-slate-200 text-slate-700 p-4 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 font-bold shadow-sm">
           <List className="w-5 h-5" /> Manage Inventory

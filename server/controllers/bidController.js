@@ -1,5 +1,7 @@
 const Bid = require('../models/Bid');
 const Item = require('../models/Item');
+const User = require('../models/User');
+const { dispatchNotification } = require('./notificationController');
 
 // Place a bid (Proxy Bidding Implementation)
 exports.placeBid = async (req, res) => {
@@ -42,6 +44,21 @@ exports.placeBid = async (req, res) => {
        return res.status(400).json({ message: `Bid must be higher than $${currentPrice}.` });
     }
 
+    // --- SNIPER PROTECTION LOGIC (Soft Close) ---
+    // If a valid competitive bid is placed in the last 2 minutes, extend by 5 minutes
+    let auctionExtended = false;
+    let newEndTime = item.endTime;
+    const timeLeftMs = new Date(item.endTime).getTime() - Date.now();
+    
+    // Only apply sniper protection for competitive bids (not current winner updating max)
+    const isUpdatingMax = currentWinner && currentWinner.toString() === bidderId.toString();
+    
+    if (!isUpdatingMax && timeLeftMs > 0 && timeLeftMs < 2 * 60 * 1000) {
+        newEndTime = new Date(Date.now() + 5 * 60 * 1000);
+        item.endTime = newEndTime;
+        auctionExtended = true;
+    }
+
     // --- SCENARIO 1: First Bidder ---
     if (!currentWinner) {
        item.currentBid = item.basePrice; 
@@ -52,6 +69,8 @@ exports.placeBid = async (req, res) => {
        await item.save();
 
        io.emit('bid_update', { itemId, currentBid: item.currentBid, bidderName: req.user.name });
+       if (auctionExtended) io.emit('auction_extended', { itemId, newEndTime });
+       
        return res.status(201).json({ message: 'Bid placed!', currentPrice: item.currentBid });
     }
 
@@ -87,6 +106,7 @@ exports.placeBid = async (req, res) => {
             currentBid: newSafePrice, 
             bidderName: "Auto-Bid" 
         });
+        if (auctionExtended) io.emit('auction_extended', { itemId, newEndTime });
 
         // --- IMPROVEMENT: TIE-BREAKER MESSAGE ---
         // If the calculated price exactly matches the user's bid, it means they tied the max but lost due to time priority.
@@ -120,7 +140,23 @@ exports.placeBid = async (req, res) => {
         const newBid = await Bid.create({ item: itemId, bidder: bidderId, amount: newPrice });
         await newBid.populate('bidder', 'name');
 
+        // --- DISPATCH OUTBID NOTIFICATION ---
+        if (currentWinner) {
+             const prevLeader = await User.findById(currentWinner).select('email');
+             if (prevLeader) {
+                 await dispatchNotification({
+                     userId: currentWinner,
+                     userEmail: prevLeader.email,
+                     type: 'outbid',
+                     message: `Your maximum bid on "${item.title}" was exceeded. The current bid is now ₹${newPrice}.`,
+                     relatedItemId: itemId,
+                     subject: `You've been outbid on ${item.title}!`
+                 });
+             }
+        }
+
         io.emit('bid_update', { itemId, currentBid: newPrice, bidderName: req.user.name });
+        if (auctionExtended) io.emit('auction_extended', { itemId, newEndTime });
         
         return res.status(201).json({ message: 'You are the highest bidder!', currentPrice: newPrice });
     }

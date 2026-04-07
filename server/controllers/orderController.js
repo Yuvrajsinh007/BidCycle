@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const Item = require('../models/Item');
+const Cart = require('../models/Cart');
 
 // Buy Now — create an order for a direct-sale item
 exports.buyNow = async (req, res) => {
@@ -67,6 +68,77 @@ exports.buyNow = async (req, res) => {
   } catch (error) {
     console.error('Buy Now error:', error);
     res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Checkout Cart
+exports.checkoutCart = async (req, res) => {
+  try {
+    const buyerId = req.user._id;
+
+    const cart = await Cart.findOne({ user: buyerId }).populate('items.item');
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: 'Your cart is empty.' });
+    }
+
+    // Validate all items before processing
+    for (const cartItem of cart.items) {
+       const item = cartItem.item;
+       if (!item) return res.status(400).json({ message: 'Some items in your cart no longer exist.' });
+       if (item.stock < cartItem.quantity || item.status === 'out_of_stock') {
+          return res.status(400).json({ message: `Insufficient stock for '${item.title}'. Please adjust quantity.` });
+       }
+    }
+
+    const createdOrders = [];
+    let grandTotal = 0;
+
+    // Process orders serially to ensure atomicity
+    for (const cartItem of cart.items) {
+       const item = cartItem.item;
+       const quantity = cartItem.quantity;
+       const total = item.price * quantity;
+       grandTotal += total;
+
+       const updatedItem = await Item.findOneAndUpdate(
+         { _id: item._id, stock: { $gte: quantity } },
+         { $inc: { stock: -quantity } },
+         { new: true }
+       );
+
+       if (!updatedItem) {
+         // Should rarely hit this due to validation above, but handles race conditions
+         return res.status(400).json({ message: `'${item.title}' went out of stock during checkout.` });
+       }
+
+       if (updatedItem.stock === 0) {
+         updatedItem.status = 'out_of_stock';
+         await updatedItem.save();
+       }
+
+       const order = await Order.create({
+         buyer: buyerId,
+         seller: item.seller,
+         item: item._id,
+         quantity,
+         price: item.price,
+         total
+       });
+       createdOrders.push(order);
+    }
+
+    // Clear cart after successful checkout
+    cart.items = [];
+    await cart.save();
+
+    res.status(201).json({
+      message: 'Checkout successful! Your orders have been placed.',
+      ordersCount: createdOrders.length,
+      grandTotal
+    });
+  } catch (error) {
+    console.error('Checkout error:', error);
+    res.status(500).json({ message: 'Server error during checkout.' });
   }
 };
 
