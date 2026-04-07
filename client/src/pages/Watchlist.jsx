@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Heart, ArrowRight, Clock, XCircle, Search, Filter } from 'lucide-react';
+import { Heart, ArrowRight, Clock, XCircle } from 'lucide-react';
 
 const Watchlist = () => {
   const [items, setItems] = useState([]);
@@ -88,7 +88,7 @@ const Watchlist = () => {
                     <div className="mt-auto border-t border-slate-100 pt-4 flex justify-between items-end">
                       <div>
                           <p className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-1">Current Bid</p>
-                          <p className="text-2xl font-black text-slate-900">${item.currentBid || item.basePrice}</p>
+                          <p className="text-2xl font-black text-slate-900">₹{item.currentBid || item.basePrice}</p>
                       </div>
                       <div className="text-right pb-1">
                           <span className="text-brand-600 font-bold text-sm flex items-center gap-1">View <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/></span>

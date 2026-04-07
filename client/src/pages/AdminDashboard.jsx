@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Users, Package, Gavel, Timer, Archive, Ban, DollarSign, Activity, ArrowRight, ActivitySquare
+  Users, Package, Gavel, Timer, Archive, Ban, IndianRupee , Activity, ArrowRight, ActivitySquare
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -89,7 +89,7 @@ const AdminDashboard = () => {
             <>
               <StatCard icon={Users} title="Global Users" value={stats.totalUsers} color="text-blue-600" bg="bg-blue-600" />
               <StatCard icon={Package} title="Total Listed Items" value={stats.totalItems} color="text-purple-600" bg="bg-purple-600" />
-              <StatCard icon={DollarSign} title="Total Economy Bids" value={stats.totalBids} color="text-green-600" bg="bg-green-600" />
+              <StatCard icon={IndianRupee } title="Total Economy Bids" value={stats.totalBids} color="text-green-600" bg="bg-green-600" />
               <StatCard icon={Timer} title="Active Auctions" value={stats.activeAuctions} color="text-brand-600" bg="bg-brand-600" />
               <StatCard icon={Archive} title="Closed Vaults" value={stats.endedAuctions} color="text-slate-600" bg="bg-slate-600" />
               <StatCard icon={Ban} title="Banned Identities" value={stats.bannedUsers} color="text-red-600" bg="bg-red-600" />

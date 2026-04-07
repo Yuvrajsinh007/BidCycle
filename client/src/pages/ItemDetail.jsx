@@ -6,9 +6,9 @@ import { useAuctionSocket } from "../hooks/useAuctionSocket";
 import { useTimer } from "../hooks/useTimer";
 import AuctionTimer from "../components/ui/AuctionTimer";
 import { 
-  IndianRupee, User, Tag, AlertCircle, CheckCircle2, // Changed DollarSign to IndianRupee
-  Trophy, Gavel, ArrowLeft, ShieldAlert, History, Info,
-  Heart, MessageCircle, ChevronRight, Share2, Clock
+  IndianRupee, User, Tag, AlertCircle, CheckCircle2,
+  Trophy, Gavel, History, Info,
+  Heart, MessageCircle, ChevronRight, Share2
 } from 'lucide-react';
 
 const ItemDetail = () => {

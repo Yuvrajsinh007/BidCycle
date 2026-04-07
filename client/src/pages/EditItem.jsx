@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { 
-  Package, DollarSign, Upload, X, ArrowLeft, AlertCircle, CheckCircle2, Save
+  Package, IndianRupee , Upload, X, ArrowLeft, AlertCircle, Save
 } from "lucide-react";
 
 const EditItem = () => {
@@ -134,7 +134,7 @@ const EditItem = () => {
 
            <div className="lg:col-span-4 space-y-6">
               <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8">
-                 <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-green-50 rounded-xl"><DollarSign className="w-6 h-6 text-green-600" /></div><h2 className="text-xl font-black">Base Price</h2></div>
+                 <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-green-50 rounded-xl"><IndianRupee  className="w-6 h-6 text-green-600" /></div><h2 className="text-xl font-black">Base Price</h2></div>
                  <input type="number" name="basePrice" value={formData.basePrice} onChange={handleChange} min="0" step="0.01" className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl text-center focus:outline-none focus:border-brand-500" />
               </div>
 

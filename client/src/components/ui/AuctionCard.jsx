@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, User, Tag, ShieldAlert } from 'lucide-react';
+import { IndianRupee , User, Tag } from 'lucide-react';
 import AuctionTimer from './AuctionTimer';
 
 const statusConfig = {
@@ -78,7 +78,7 @@ const AuctionCard = ({ item }) => {
                   {currentStatus === 'upcoming' ? 'Starting Bid' : 'Current Bid'}
               </p>
               <div className="flex items-center gap-1 text-slate-900 font-extrabold text-xl">
-                <DollarSign className="w-4 h-4 text-slate-400" strokeWidth={3} />
+                <IndianRupee  className="w-4 h-4 text-slate-400" strokeWidth={3} />
                 {item.currentBid || item.basePrice}
               </div>
             </div>

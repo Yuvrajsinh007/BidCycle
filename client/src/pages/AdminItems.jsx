@@ -120,7 +120,7 @@ const AdminItems = () => {
                         <div className="flex justify-between items-end border-t border-slate-100 pt-4">
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Economy Base</p>
-                            <p className="text-2xl font-black text-slate-900">${item.currentBid || item.basePrice}</p>
+                            <p className="text-2xl font-black text-slate-900">₹{item.currentBid || item.basePrice}</p>
                           </div>
                           {isActive && (
                             <div className="text-right">

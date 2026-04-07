@@ -206,7 +206,7 @@ const AdminAccount = () => {
   const tabs = [
     { id: "profile", icon: <User className="w-5 h-5" />, label: "Profile Info" },
     { id: "password", icon: <Lock className="w-5 h-5" />, label: "Security" },
-    { id: "admin-settings", icon: <Settings className="w-5 h-5" />, label: "System Config" },
+    // { id: "admin-settings", icon: <Settings className="w-5 h-5" />, label: "System Config" },
     { id: "profile-pic", icon: <Camera className="w-5 h-5" />, label: "Profile Picture" },
   ];
 

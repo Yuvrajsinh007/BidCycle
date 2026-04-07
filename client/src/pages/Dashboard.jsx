@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import { 
   Package, ShoppingBag, Gavel, Trophy, CreditCard, 
-  Plus, List, TrendingUp, ArrowRight, Activity, Clock
+  Plus, List, TrendingUp, ArrowRight, Activity
 } from 'lucide-react';
 
 const StatCard = ({ icon: Icon, title, value, colorClass }) => (
@@ -46,7 +46,7 @@ const SellerDashboard = ({ user }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard icon={Package} title="Active Listings" value={activeItems} colorClass="bg-blue-50 text-blue-600" />
         <StatCard icon={Trophy} title="Completed Actions" value={soldItems} colorClass="bg-brand-50 text-brand-600" />
-        <StatCard icon={CreditCard} title="Est. Revenue" value={`$${totalRevenue.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
+        <StatCard icon={CreditCard} title="Est. Revenue" value={`₹${totalRevenue.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -99,7 +99,7 @@ const SellerDashboard = ({ user }) => {
                                   </span>
                               </td>
                               <td className="px-6 py-4 font-black text-slate-900">
-                                  ${item.currentBid || item.basePrice}
+                                ₹{item.currentBid || item.basePrice}
                               </td>
                               <td className="px-6 py-4 text-slate-500 text-sm font-medium">
                                   {new Date(item.createdAt).toLocaleDateString()}
@@ -151,7 +151,7 @@ const BuyerDashboard = ({ user }) => {
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard icon={Gavel} title="Active Bids" value={activeBids.length} colorClass="bg-blue-50 text-blue-600" />
         <StatCard icon={Trophy} title="Auctions Won" value={uniqueWonItems.length} colorClass="bg-brand-50 text-brand-600" />
-        <StatCard icon={CreditCard} title="Total Committed" value={`$${totalSpent.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
+        <StatCard icon={CreditCard} title="Total Committed" value={`₹${totalSpent.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
       </div>
 
       <div className="flex">
@@ -197,7 +197,7 @@ const BuyerDashboard = ({ user }) => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 font-black text-slate-900">
-                                        ${bid.amount}
+                                        ₹{bid.amount}
                                     </td>
                                     <td className="px-6 py-4">
                                         {bid.item ? (

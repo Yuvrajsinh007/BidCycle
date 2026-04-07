@@ -140,7 +140,7 @@ const MyItems = () => {
                         <div className="flex justify-between items-end mb-4 border-t border-slate-100 pt-4">
                             <div>
                                 <p className="text-[10px] font-black tracking-widest uppercase text-slate-400">Value</p>
-                                <p className="text-xl font-black text-slate-900">${item.currentBid || item.basePrice}</p>
+                                <p className="text-xl font-black text-slate-900">₹{item.currentBid || item.basePrice}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] font-black tracking-widest uppercase text-slate-400">Bids / Timer</p>
