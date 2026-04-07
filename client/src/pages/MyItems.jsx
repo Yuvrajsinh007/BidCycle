@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
   Plus, Search, Filter, Trash2, Edit, Eye, Clock, 
-  CheckCircle2, XCircle, AlertCircle, Calendar, Gavel
+  CheckCircle2, XCircle, AlertCircle, Calendar, Gavel,
+  ShoppingBag, Package, Layers
 } from 'lucide-react';
 
 const MyItems = () => {
@@ -48,10 +49,23 @@ const MyItems = () => {
   };
 
   const filteredItems = items.filter(item => {
-    const now = new Date(), start = new Date(item.startTime), end = new Date(item.endTime);
-    const isEnded = ['sold', 'expired', 'closed'].includes(item.status) || now >= end;
-    const isUpcoming = now < start; 
-    const isActive = !isUpcoming && !isEnded;
+    const isDirect = item.listingType === 'direct';
+    const now = new Date();
+    
+    let isEnded = false;
+    let isUpcoming = false;
+    let isActive = false;
+    
+    if (isDirect) {
+      isEnded = item.stock <= 0 || item.status === 'out_of_stock';
+      isActive = !isEnded;
+    } else {
+      const start = new Date(item.startTime || item.createdAt);
+      const end = new Date(item.endTime);
+      isEnded = ['sold', 'expired', 'closed'].includes(item.status) || now >= end;
+      isUpcoming = now < start; 
+      isActive = !isUpcoming && !isEnded;
+    }
 
     let matchesFilter = filter === 'all' || (filter === 'active' && (isActive || isUpcoming)) || (filter === 'ended' && isEnded);
     return matchesFilter && item.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -77,9 +91,15 @@ const MyItems = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-             { t: "Total Listed", v: items.length, c: "bg-slate-100 text-slate-700", I: Gavel },
-             { t: "Active & Upcoming", v: items.filter(i => new Date(i.endTime) > new Date()).length, c: "bg-brand-50 text-brand-600", I: Clock },
-             { t: "Ended Auctions", v: items.filter(i => new Date(i.endTime) <= new Date()).length, c: "bg-blue-50 text-blue-600", I: CheckCircle2 }
+             { t: "Total Listed", v: items.length, c: "bg-slate-100 text-slate-700", I: Layers },
+             { t: "Active & Upcoming", v: items.filter(i => {
+                if(i.listingType==='direct') return i.stock > 0;
+                return new Date(i.endTime) > new Date();
+             }).length, c: "bg-brand-50 text-brand-600", I: Clock },
+             { t: "Ended / Sold Out", v: items.filter(i => {
+                if(i.listingType==='direct') return i.stock <= 0;
+                return new Date(i.endTime) <= new Date();
+             }).length, c: "bg-blue-50 text-blue-600", I: CheckCircle2 }
           ].map((s, i) => (
             <div key={i} className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between">
               <div>
@@ -116,19 +136,38 @@ const MyItems = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredItems.map(item => {
-              const now = new Date(), start = new Date(item.startTime), end = new Date(item.endTime);
-              const isEnded = ['sold', 'expired', 'closed'].includes(item.status) || now >= end;
-              const isUpcoming = now < start;
+              const isDirect = item.listingType === 'direct';
+              const now = new Date();
+              
+              let isEnded = false;
+              let isUpcoming = false;
+              
+              if (isDirect) {
+                isEnded = item.stock <= 0 || item.status === 'out_of_stock';
+              } else {
+                const start = new Date(item.startTime || item.createdAt);
+                const end = new Date(item.endTime);
+                isEnded = ['sold', 'expired', 'closed'].includes(item.status) || now >= end;
+                isUpcoming = now < start;
+              }
               
               return (
                 <div key={item._id} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all flex flex-col group">
                   <div className="relative h-48 bg-slate-100 overflow-hidden">
                     {item.images?.[0] ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center font-bold text-slate-300">NO IMAGE</div>}
                     
+                    <div className="absolute top-3 left-3">
+                       {isDirect ? (
+                           <span className="bg-amber-100/90 border border-amber-200 text-amber-800 backdrop-blur-sm text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-md flex items-center gap-1 shadow-sm"><ShoppingBag className="w-3 h-3"/> Buy Now</span>
+                       ) : (
+                           <span className="bg-indigo-100/90 border border-indigo-200 text-indigo-700 backdrop-blur-sm text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-md flex items-center gap-1 shadow-sm"><Gavel className="w-3 h-3"/> Auction</span>
+                       )}
+                    </div>
+
                     <div className="absolute top-3 right-3">
                       {isUpcoming ? <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm"><Calendar className="w-3 h-3"/> Up</span>
-                       : isEnded ? <span className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1"><XCircle className="w-3 h-3"/> Ended</span>
-                       : <span className="bg-brand-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm"><Clock className="w-3 h-3"/> Active</span>}
+                       : isEnded ? <span className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1"><XCircle className="w-3 h-3"/> {isDirect ? 'Sold Out' : 'Ended'}</span>
+                       : <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm"><Clock className="w-3 h-3"/> Active</span>}
                     </div>
                   </div>
 
@@ -139,12 +178,18 @@ const MyItems = () => {
                     <div className="mt-auto">
                         <div className="flex justify-between items-end mb-4 border-t border-slate-100 pt-4">
                             <div>
-                                <p className="text-[10px] font-black tracking-widest uppercase text-slate-400">Value</p>
-                                <p className="text-xl font-black text-slate-900">₹{item.currentBid || item.basePrice}</p>
+                                <p className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-0.5">
+                                   {isDirect ? 'Price' : 'Value'}
+                                </p>
+                                <p className="text-xl font-black text-slate-900">₹{isDirect ? item.price : (item.currentBid || item.basePrice)}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-[10px] font-black tracking-widest uppercase text-slate-400">Bids / Timer</p>
-                                <p className="text-sm font-bold text-brand-600 tabular-nums">{isEnded ? "Closed" : formatTimer(item)}</p>
+                                <p className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-0.5">
+                                   {isDirect ? 'Stock' : 'Timer'}
+                                </p>
+                                <p className={`text-sm font-bold tabular-nums ${isDirect ? (item.stock > 0 ? 'text-emerald-600' : 'text-red-500') : 'text-brand-600'}`}>
+                                   {isDirect ? `${item.stock} left` : (isEnded ? "Closed" : formatTimer(item))}
+                                </p>
                             </div>
                         </div>
 

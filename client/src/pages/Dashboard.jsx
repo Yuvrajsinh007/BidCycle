@@ -31,8 +31,20 @@ const SellerDashboard = ({ user }) => {
       .finally(() => setLoading(false));
   }, []);
 
-  const activeItems = items.filter(i => new Date(i.endTime) > new Date()).length;
-  const soldItems = items.filter(i => new Date(i.endTime) <= new Date()).length;
+  const activeItems = items.filter(i => {
+    if (i.listingType === 'direct') return i.stock > 0;
+    return new Date(i.endTime) > new Date();
+  }).length;
+  const soldItems = items.filter(i => {
+    if (i.listingType === 'direct') return false; // Handled separately
+    return new Date(i.endTime) <= new Date();
+  }).length;
+  
+  const directSales = items.reduce((acc, curr) => {
+     if (curr.listingType === 'direct' && curr.stock === 0) return acc + 1;
+     return acc;
+  }, 0);
+
   const totalRevenue = items
     .filter(i => new Date(i.endTime) <= new Date())
     .reduce((acc, curr) => acc + (curr.currentBid || curr.basePrice || 0), 0);
@@ -43,10 +55,11 @@ const SellerDashboard = ({ user }) => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard icon={Package} title="Active Listings" value={activeItems} colorClass="bg-blue-50 text-blue-600" />
-        <StatCard icon={Trophy} title="Completed Actions" value={soldItems} colorClass="bg-brand-50 text-brand-600" />
-        <StatCard icon={CreditCard} title="Est. Revenue" value={`₹${totalRevenue.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
+        <StatCard icon={Trophy} title="Auctions Ended" value={soldItems} colorClass="bg-brand-50 text-brand-600" />
+        <StatCard icon={ShoppingBag} title="Direct Sold Out" value={directSales} colorClass="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={CreditCard} title="Est. Auction Value" value={`₹${totalRevenue.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -144,19 +157,30 @@ const BuyerDashboard = ({ user }) => {
   const uniqueWonItems = Array.from(uniqueWonMap.values());
   const totalSpent = uniqueWonItems.reduce((acc, curr) => acc + curr.amount, 0);
 
+  const [orders, setOrders] = useState([]);
+  useEffect(() => {
+    api.get('/orders/my-orders')
+      .then(({data}) => setOrders(data))
+      .catch(console.error);
+  }, []);
+
   if (loading) return <div className="h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-slate-900"></div></div>;
 
   return (
     <div className="space-y-8 animate-fadeIn">
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard icon={Gavel} title="Active Bids" value={activeBids.length} colorClass="bg-blue-50 text-blue-600" />
         <StatCard icon={Trophy} title="Auctions Won" value={uniqueWonItems.length} colorClass="bg-brand-50 text-brand-600" />
-        <StatCard icon={CreditCard} title="Total Committed" value={`₹${totalSpent.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
+        <StatCard icon={Package} title="Direct Orders" value={orders.length} colorClass="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={CreditCard} title="Auction Value" value={`₹${totalSpent.toLocaleString()}`} colorClass="bg-slate-100 text-slate-700" />
       </div>
 
-      <div className="flex">
-        <Link to="/market" className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-xl font-bold shadow-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
+      <div className="flex gap-4 flex-col sm:flex-row">
+        <Link to="/market" className="flex-1 bg-slate-900 text-white px-8 py-4 rounded-xl font-bold shadow-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
           <ShoppingBag className="w-5 h-5" /> Browse Marketplace
+        </Link>
+        <Link to="/my-orders" className="flex-1 bg-white border border-slate-200 text-slate-900 px-8 py-4 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+          <List className="w-5 h-5" /> View My Orders
         </Link>
       </div>
 

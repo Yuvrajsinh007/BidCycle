@@ -12,7 +12,7 @@ export function useTimer(launchTime, endTime, status) {
 
   useEffect(() => {
     // Only run the timer if the auction isn't strictly closed
-    if (['sold', 'closed'].includes(status)) return;
+    if (['sold', 'closed', 'expired', 'paid'].includes(status)) return;
     
     // Check if it's already past end time
     if (endTime && new Date(endTime) < new Date()) return;
@@ -26,7 +26,7 @@ export function useTimer(launchTime, endTime, status) {
   
   const isUpcoming = now < start;
   const isExpired = now >= end;
-  const isEnded = isExpired || ['sold', 'closed', 'expired'].includes(status);
+  const isEnded = isExpired || ['sold', 'closed', 'expired', 'paid'].includes(status);
 
   // Define target date based on whether it has started or not
   const targetDate = isUpcoming ? start : end;

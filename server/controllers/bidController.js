@@ -18,7 +18,15 @@ exports.placeBid = async (req, res) => {
     const item = await Item.findById(itemId).select('+highestMaxBid');
     
     if (!item) return res.status(404).json({ message: 'Item not found.' });
-    if (item.status !== 'active' || new Date(item.endTime) <= new Date()) {
+
+    // Block bidding if auction hasn't started yet
+    const now = new Date();
+    const launchTime = new Date(item.launchTime || item.createdAt);
+    if (now < launchTime) {
+      return res.status(400).json({ message: 'Auction has not started yet.' });
+    }
+    // Block bidding if auction has ended
+    if (item.status !== 'active' || new Date(item.endTime) <= now) {
       return res.status(400).json({ message: 'Auction has ended.' });
     }
     if (item.seller.toString() === bidderId.toString()) {

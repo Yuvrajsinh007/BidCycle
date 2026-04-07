@@ -7,7 +7,8 @@ import AuctionCard from '../components/ui/AuctionCard';
 import { 
   Search, Filter, Tag, 
   ChevronLeft, ChevronRight, 
-  ArrowRight, SearchX, Shapes
+  ArrowRight, SearchX, Shapes,
+  Gavel, ShoppingBag, Layers
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -27,6 +28,7 @@ const Home = () => {
   const [loadingItems, setLoadingItems] = useState(true);
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('active'); 
+  const [listingType, setListingType] = useState('all'); 
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -49,6 +51,9 @@ const Home = () => {
         category: category,
         status: status
       });
+      if (listingType !== 'all') {
+        params.append('listingType', listingType);
+      }
       
       const response = await api.get(`/items?${params}`);
       setItems(response.data.items);
@@ -60,7 +65,7 @@ const Home = () => {
     } finally {
       setLoadingItems(false);
     }
-  }, [currentPage, searchTerm, category, status]);
+  }, [currentPage, searchTerm, category, status, listingType]);
   
   const debouncedUpdate = useCallback(
     debounce((value) => {
@@ -91,6 +96,11 @@ const Home = () => {
     setStatus(val);
     setCurrentPage(1);
   };
+  
+  const handleTypeChange = (val) => {
+    setListingType(val);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pt-20">
@@ -104,15 +114,12 @@ const Home = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
               Live Marketplace
             </span>
-            <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight leading-tight">
-              Curated Auctions for <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-brand-500">
-                 Exceptional Finds
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-slate-400 font-medium">
-              Bid on exclusive items and rare collectibles with real-time bidding infrastructure.
-            </p>
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white mb-6 uppercase tracking-tight leading-none">
+            The Ultimate <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">Hybrid Marketplace</span>
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl font-medium">
+            Discover rare items in live auctions or buy them instantly with direct sales.
+          </p>
           </div>
         </div>
       </div>
@@ -137,21 +144,49 @@ const Home = () => {
           <div className="h-px lg:h-auto lg:w-px bg-slate-200 mx-2 hidden lg:block"></div>
 
           {/* Quick Filters */}
-          <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center lg:w-auto overflow-x-auto scrollbar-hide shrink-0 pb-1 lg:pb-0">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
              
-             {/* Status Pills */}
-             <div className="flex bg-slate-100 p-1 rounded-xl">
+             {/* Status Filters */}
+             <div className="flex bg-slate-100 p-1 rounded-xl w-max border border-slate-200">
                <button 
                   onClick={() => handleStatusChange('active')}
                   className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${status === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                >
-                 Live Auctions
+                 Live Listings
+               </button>
+               <button 
+                  onClick={() => handleStatusChange('upcoming')}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${status === 'upcoming' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 Upcoming
                </button>
                <button 
                   onClick={() => handleStatusChange('ended')}
                   className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${status === 'ended' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                >
-                 Ended Auctions
+                 Ended
+               </button>
+             </div>
+
+             {/* Type Filters */}
+             <div className="flex bg-slate-100 p-1 rounded-xl w-max border border-slate-200">
+               <button 
+                  onClick={() => handleTypeChange('all')}
+                  className={`px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold rounded-lg transition-colors ${listingType === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 <Layers className="w-3.5 h-3.5" /> All Types
+               </button>
+               <button 
+                  onClick={() => handleTypeChange('auction')}
+                  className={`px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold rounded-lg transition-colors ${listingType === 'auction' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 <Gavel className="w-3.5 h-3.5" /> Auctions
+               </button>
+               <button 
+                  onClick={() => handleTypeChange('direct')}
+                  className={`px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold rounded-lg transition-colors ${listingType === 'direct' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >
+                 <ShoppingBag className="w-3.5 h-3.5" /> Buy Now
                </button>
              </div>
 

@@ -4,14 +4,11 @@ const dotenv = require('dotenv');
 const path = require('path');
 const http = require('http'); // 1. Import HTTP
 const { Server } = require('socket.io'); // 2. Import Socket.io
-const cron = require('node-cron');
+
 const connectDB = require('./config/db');
 const startAuctionCronJob = require('./utils/auctionCron');
 
-// Models
-const Item = require('./models/Item');
-const Bid = require('./models/Bid');
-const { sendEmail } = require('./utils/emailService');
+
 
 // Route Imports
 const chatRoutes = require('./routes/chat');
@@ -73,61 +70,7 @@ app.use(cors({
 app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), verifyPayment);
 app.use(express.json());
 
-// --- CRON JOB FOR AUTOMATIC AUCTION CLOSING ---
-// Runs every minute to check for expired auctions
 
-cron.schedule('* * * * *', async () => {
-  try {
-    const now = new Date();
-    
-    // Find active items that have passed their end time
-    const expiredItems = await Item.find({ 
-      status: 'active', 
-      endTime: { $lte: now } 
-    });
-
-    for (const item of expiredItems) {
-      // Find highest bid
-      const highestBid = await Bid.findOne({ item: item._id })
-        .sort({ amount: -1 })
-        .populate('bidder', 'name email'); // Populate email for notifications
-
-      if (highestBid) {
-        item.status = 'sold';
-        item.winner = highestBid.bidder._id;
-        item.currentBid = highestBid.amount;
-        
-        // 5. REAL-TIME NOTIFICATION: Item Sold
-        io.emit('auction_ended', {
-          itemId: item._id,
-          status: 'sold',
-          winner: highestBid.bidder,
-          finalPrice: highestBid.amount
-        });
-
-        console.log(`Auction closed: Item ${item.title} sold to ${highestBid.bidder.name}`);
-        // TODO: Trigger email service here
-      } else {
-        item.status = 'expired';
-        
-        // 5. REAL-TIME NOTIFICATION: Item Expired
-        io.emit('auction_ended', {
-           itemId: item._id,
-           status: 'expired',
-           winner: null,
-           finalPrice: item.currentBid
-        });
-
-        // console.log(`Auction expired: Item ${item.title} had no bids.`);
-      }
-      await item.save();
-    }
-  } catch (error) {
-    console.error('Cron job error:', error);
-  }
-});
-
-// ----------------------------------------------
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -138,12 +81,13 @@ app.use('/api/bids', require('./routes/bids'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/chat', chatRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/orders', require('./routes/orders'));
 
 app.get('/', (req, res) => {
   res.send('Online Auction API is running');
 });
 
-startAuctionCronJob();
+startAuctionCronJob(io);
 
 // 6. IMPORTANT: Listen on 'server', not 'app'
 server.listen(PORT, () => {

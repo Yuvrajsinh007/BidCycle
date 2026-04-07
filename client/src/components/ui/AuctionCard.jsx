@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { IndianRupee , User, Tag } from 'lucide-react';
+import { IndianRupee, User, Tag, ShoppingBag, Gavel, Package } from 'lucide-react';
 import AuctionTimer from './AuctionTimer';
 
 const statusConfig = {
@@ -16,6 +16,18 @@ const statusConfig = {
     border: 'border-green-200',
     label: 'Live'
   },
+  available: {
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    label: 'Available'
+  },
+  out_of_stock: {
+    bg: 'bg-red-100',
+    text: 'text-red-600',
+    border: 'border-red-200',
+    label: 'Out of Stock'
+  },
   ended: {
     bg: 'bg-slate-100',
     text: 'text-slate-600',
@@ -25,7 +37,16 @@ const statusConfig = {
 };
 
 const AuctionCard = ({ item }) => {
-  const currentStatus = ['sold', 'closed', 'expired', 'paid'].includes(item.status) ? 'ended' : item.status;
+  const isDirect = item.listingType === 'direct';
+  
+  // Compute display status
+  let currentStatus;
+  if (isDirect) {
+    currentStatus = (item.status === 'out_of_stock' || item.stock === 0) ? 'out_of_stock' : 'available';
+  } else {
+    currentStatus = ['sold', 'closed', 'expired', 'paid'].includes(item.status) ? 'ended' : item.status;
+  }
+  
   const conf = statusConfig[currentStatus] || statusConfig.active;
 
   return (
@@ -49,7 +70,16 @@ const AuctionCard = ({ item }) => {
         )}
         
         {/* Top Badges */}
-        <div className="absolute top-3 left-3 z-10">
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+          {/* Listing Type Badge */}
+          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${
+            isDirect 
+              ? 'bg-amber-100/90 text-amber-800 border-amber-200' 
+              : 'bg-indigo-100/90 text-indigo-700 border-indigo-200'
+          }`}>
+            {isDirect ? <><ShoppingBag className="w-3 h-3" /> Buy Now</> : <><Gavel className="w-3 h-3" /> Auction</>}
+          </span>
+          {/* Status Badge */}
           <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${conf.bg} ${conf.text} ${conf.border}`}>
             {conf.label}
           </span>
@@ -75,15 +105,21 @@ const AuctionCard = ({ item }) => {
           <div className="flex justify-between items-end border-t border-slate-100 pt-4">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
-                  {currentStatus === 'upcoming' ? 'Starting Bid' : 'Current Bid'}
+                {isDirect ? 'Price' : (currentStatus === 'upcoming' ? 'Starting Bid' : 'Current Bid')}
               </p>
               <div className="flex items-center gap-1 text-slate-900 font-extrabold text-xl">
-                <IndianRupee  className="w-4 h-4 text-slate-400" strokeWidth={3} />
-                {item.currentBid || item.basePrice}
+                <IndianRupee className="w-4 h-4 text-slate-400" strokeWidth={3} />
+                {isDirect ? item.price : (item.currentBid || item.basePrice)}
               </div>
             </div>
             <div className="text-right flex flex-col justify-end items-end h-full">
-               <AuctionTimer item={item} className="text-sm" />
+              {isDirect ? (
+                <span className={`text-sm font-bold ${item.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
+                </span>
+              ) : (
+                <AuctionTimer item={item} className="text-sm" />
+              )}
             </div>
           </div>
 

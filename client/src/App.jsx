@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import ItemDetail from './pages/ItemDetail';
 import CreateItem from './pages/CreateItem';
 import MyItems from './pages/MyItems';
+import MyOrders from './pages/MyOrders';
 import EditItem from './pages/EditItem';
 import ChatWindow from './pages/ChatWindow';
 import AdminDashboard from './pages/AdminDashboard';
@@ -106,6 +107,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['Admin']}>
                     <AdminAccount />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/my-orders" 
+                element={
+                  <ProtectedRoute>
+                    <MyOrders />
                   </ProtectedRoute>
                 } 
               />

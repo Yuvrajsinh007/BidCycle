@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   LayoutDashboard, Users, Package, Gavel, 
   ChevronDown, LogOut, User as UserIcon, 
-  ShoppingBag, Plus, Heart, Menu, X 
+  ShoppingBag, Plus, Heart, Menu, X, List
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -66,9 +66,14 @@ const Navbar = () => {
                 )}
                 
                 {user.role === 'Buyer' && (
-                  <Link to="/watchlist" className="p-2 ml-1 text-slate-400 hover:text-brand-500 hover:bg-brand-50 rounded-full transition-colors relative">
-                    <Heart className="w-5 h-5" />
-                  </Link>
+                  <>
+                    <Link to="/watchlist" className="px-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 border border-transparent">
+                      <Heart className="w-4 h-4" /> Watchlist
+                    </Link>
+                    <Link to="/my-orders" className="px-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 border border-transparent">
+                      <List className="w-4 h-4" /> My Orders
+                    </Link>
+                  </>
                 )}
 
                 {/* Admin Dropdown */}
@@ -178,6 +183,9 @@ const Navbar = () => {
                </div>
                <Link to="/market" className="block px-3 py-2 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">Marketplace</Link>
                <Link to="/dashboard" className="block px-3 py-2 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">Dashboard</Link>
+               {user.role === 'Buyer' && (
+                 <Link to="/my-orders" className="block px-3 py-2 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">My Orders</Link>
+               )}
                <button onClick={handleLogout} className="block w-full text-left px-3 py-2 rounded-lg text-red-600 font-semibold hover:bg-red-50 mt-4">Sign Out</button>
             </div>
            ) : (

@@ -25,12 +25,20 @@ export function useAuctionSocket(itemId, callbacks) {
       }
     };
 
+    const handleAuctionStart = (data) => {
+      if (data.itemId === itemId && callbacks.onAuctionStart) {
+        callbacks.onAuctionStart(data);
+      }
+    };
+
     socket.on('bid_update', handleBidUpdate);
     socket.on('auction_ended', handleAuctionEnd);
+    socket.on('auction_started', handleAuctionStart);
 
     return () => {
       socket.off('bid_update', handleBidUpdate);
       socket.off('auction_ended', handleAuctionEnd);
+      socket.off('auction_started', handleAuctionStart);
     };
   }, [itemId, callbacks]);
 

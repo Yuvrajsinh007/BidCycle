@@ -8,7 +8,8 @@ import AuctionTimer from "../components/ui/AuctionTimer";
 import { 
   IndianRupee, User, Tag, AlertCircle, CheckCircle2,
   Trophy, Gavel, History, Info,
-  Heart, MessageCircle, ChevronRight, Share2
+  Heart, MessageCircle, ChevronRight, Share2,
+  ShoppingBag, Package, Minus, Plus
 } from 'lucide-react';
 
 const ItemDetail = () => {
@@ -25,6 +26,7 @@ const ItemDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [buyQuantity, setBuyQuantity] = useState(1);
 
   // Timer hook
   const timerData = useTimer(
@@ -62,13 +64,15 @@ const ItemDetail = () => {
   // Socket Hook Implementation
   useAuctionSocket(id, {
     onBidUpdate: (data) => {
-      // FIX: Instead of manually building a fake bid object, fetch the real, up-to-date data from the DB!
-      // This guarantees all users see the exact same history, no matter what.
       fetchItemDetails(); 
     },
     onAuctionEnd: (data) => {
       setItem(prev => prev ? { ...prev, status: data.status, winner: data.winner } : prev);
       fetchItemDetails(); 
+    },
+    onAuctionStart: (data) => {
+      setItem(prev => prev ? { ...prev, status: 'active' } : prev);
+      fetchItemDetails();
     }
   });
 
@@ -112,12 +116,32 @@ const ItemDetail = () => {
     }
   };
 
+  // Buy Now handler for direct items
+  const handleBuyNow = async () => {
+    setError(""); setSuccess("");
+    if (!user) return navigate("/login");
+
+    try {
+      setSubmitting(true);
+      const res = await api.post(`/orders/${id}`, { quantity: buyQuantity });
+      setSuccess(res.data.message || "Order placed!");
+      fetchItemDetails();
+      setTimeout(() => setSuccess(""), 5000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to place order.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isDirect = item?.listingType === 'direct';
+
   // derived state
-  const isWinner = timerData.isEnded && user && item?.winner && 
+  const isWinner = !isDirect && timerData.isEnded && user && item?.winner && 
                    (item.winner._id === user._id || item.winner === user._id);
   
-  const didUserBid = user && bids.some(b => b.bidder?._id === user._id || b.bidder === user._id);
-  const isLoser = timerData.isEnded && didUserBid && !isWinner;
+  const didUserBid = !isDirect && user && bids.some(b => b.bidder?._id === user._id || b.bidder === user._id);
+  const isLoser = !isDirect && timerData.isEnded && didUserBid && !isWinner;
   const isOwner = user && item?.seller?._id === user._id;
 
   if (loading) {
@@ -289,37 +313,102 @@ const ItemDetail = () => {
                 {item.title}
               </h1>
 
-              {/* Price & Timer Grid */}
+              {/* Price & Timer/Stock Grid */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                       {timerData.isUpcoming ? "Opening Bid" : "Current Bid"}
+                       {isDirect ? 'Price' : (timerData.isUpcoming ? "Opening Bid" : "Current Bid")}
                    </p>
                    <div className="flex items-baseline gap-1">
                        <span className="text-3xl font-black text-slate-900">
-                           ₹{item.currentBid || item.basePrice}
+                           ₹{isDirect ? item.price : (item.currentBid || item.basePrice)}
                        </span>
                    </div>
-                   {item.currentBid > item.basePrice && (
+                   {!isDirect && item.currentBid > item.basePrice && (
                        <p className="text-sm font-semibold text-slate-400 mt-1 line-through">Base: ₹{item.basePrice}</p>
                    )}
                 </div>
 
                 <div className={`p-5 rounded-2xl border ${
-                   timerData.isEnded ? "bg-slate-100 border-slate-200" : "bg-brand-50 border-brand-100"
+                   isDirect 
+                     ? (item.stock > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100')
+                     : (timerData.isEnded ? "bg-slate-100 border-slate-200" : "bg-brand-50 border-brand-100")
                 }`}>
-                   <AuctionTimer item={item} className="text-xl mt-2" />
+                   {isDirect ? (
+                     <div>
+                       <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Availability</p>
+                       <p className={`text-xl font-black ${item.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                         {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
+                       </p>
+                     </div>
+                   ) : (
+                     <AuctionTimer item={item} className="text-xl mt-2" />
+                   )}
                 </div>
               </div>
 
               {/* Action Area */}
               <div className="mb-8">
-                 {timerData.isUpcoming ? (
+                 {isDirect ? (
+                   // --- DIRECT SELLING: Buy Now UI ---
+                   item.stock === 0 ? (
+                     <div className="text-center py-6 px-4 bg-red-50 border border-red-100 rounded-2xl">
+                       <Package className="w-8 h-8 text-red-300 mx-auto mb-2" />
+                       <p className="font-bold text-red-600 mb-1">Out of Stock</p>
+                       <p className="text-sm text-red-400 font-medium">This item is currently unavailable.</p>
+                     </div>
+                   ) : !user ? (
+                     <button onClick={() => navigate("/login")} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-colors shadow-xl shadow-slate-200">
+                       Sign in to Purchase
+                     </button>
+                   ) : isOwner ? (
+                     <div className="text-center py-6 px-4 border border-slate-200 rounded-2xl bg-white shadow-sm">
+                       <p className="font-bold text-brand-600">Your Product Listing</p>
+                     </div>
+                   ) : user.role !== 'Buyer' ? (
+                     <div className="text-center py-4 px-4 bg-red-50 text-red-600 rounded-xl font-bold text-sm">
+                       Only Buyer accounts can make purchases.
+                     </div>
+                   ) : (
+                     <div className="space-y-4">
+                       {error && <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4"/> {error}</div>}
+                       {success && <div className="p-3 bg-brand-50 text-brand-700 text-sm font-bold rounded-lg flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> {success}</div>}
+                       
+                       {/* Quantity Selector */}
+                       <div className="flex items-center gap-4">
+                         <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Qty</span>
+                         <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                           <button type="button" onClick={() => setBuyQuantity(Math.max(1, buyQuantity - 1))} className="px-3 py-2.5 hover:bg-slate-100 transition-colors text-slate-600"><Minus className="w-4 h-4" /></button>
+                           <span className="px-4 py-2.5 font-black text-slate-900 text-lg min-w-[50px] text-center border-x border-slate-200">{buyQuantity}</span>
+                           <button type="button" onClick={() => setBuyQuantity(Math.min(item.stock, buyQuantity + 1))} className="px-3 py-2.5 hover:bg-slate-100 transition-colors text-slate-600"><Plus className="w-4 h-4" /></button>
+                         </div>
+                         <span className="text-sm text-slate-400 font-medium">of {item.stock} available</span>
+                       </div>
+
+                       {/* Total */}
+                       <div className="flex justify-between items-center py-3 px-4 bg-slate-50 rounded-xl border border-slate-100">
+                         <span className="text-sm font-bold text-slate-500">Total</span>
+                         <span className="text-xl font-black text-slate-900">₹{(item.price * buyQuantity).toLocaleString()}</span>
+                       </div>
+
+                       <button
+                         onClick={handleBuyNow}
+                         disabled={submitting}
+                         className="w-full py-4 bg-brand-600 text-white font-black text-lg rounded-xl hover:bg-brand-700 transition-all shadow-xl shadow-brand-200/50 disabled:opacity-70 transform active:scale-[0.98] flex items-center justify-center gap-2"
+                       >
+                         <ShoppingBag className="w-5 h-5" />
+                         {submitting ? <span className="animate-pulse">Processing...</span> : "Buy Now"}
+                       </button>
+                     </div>
+                   )
+                 ) : (
+                   // --- AUCTION: Existing Bid UI ---
+                   timerData.isUpcoming ? (
                      <div className="text-center py-6 px-4 border-2 border-dashed border-slate-200 rounded-2xl">
                          <p className="font-bold text-slate-900 mb-1">Auction Not Started</p>
                          <p className="text-sm text-slate-500 font-medium">Add to watchlist to be notified when it begins.</p>
                      </div>
-                 ) : timerData.isEnded ? (
+                   ) : timerData.isEnded ? (
                      <div className="text-center py-6 px-4 bg-slate-50 border border-slate-100 rounded-2xl">
                          <Gavel className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                          <p className="font-bold text-slate-900 mb-1">Auction Closed</p>
@@ -327,19 +416,19 @@ const ItemDetail = () => {
                             {item.winner ? `Won by ${item.winner.name || 'Anonymous'}` : 'No bids placed.'}
                          </p>
                      </div>
-                 ) : !user ? (
+                   ) : !user ? (
                      <button onClick={() => navigate("/login")} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-colors shadow-xl shadow-slate-200">
                          Sign in to Bid
                      </button>
-                 ) : isOwner ? (
+                   ) : isOwner ? (
                      <div className="text-center py-6 px-4 border border-slate-200 rounded-2xl bg-white shadow-sm">
                          <p className="font-bold text-brand-600">Your Active Listing</p>
                      </div>
-                 ) : user.role !== 'Buyer' ? (
+                   ) : user.role !== 'Buyer' ? (
                      <div className="text-center py-4 px-4 bg-red-50 text-red-600 rounded-xl font-bold text-sm">
                          Only Buyer accounts can place bids.
                      </div>
-                 ) : (
+                   ) : (
                      <form onSubmit={handleBid} className="space-y-4">
                          {error && <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4"/> {error}</div>}
                          {success && <div className="p-3 bg-brand-50 text-brand-700 text-sm font-bold rounded-lg flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> {success}</div>}
@@ -368,10 +457,12 @@ const ItemDetail = () => {
                          </button>
                          <p className="text-xs font-semibold text-center text-slate-400 uppercase tracking-widest pt-2">Proxy Bidding Active</p>
                      </form>
+                   )
                  )}
               </div>
 
-              {/* Bid History Accordion / List */}
+              {/* Bid History (Auction only) */}
+              {!isDirect && (
               <div className="border-t border-slate-100 pt-8 mt-2">
                  <h4 className="font-black text-slate-900 mb-4 flex items-center gap-2">
                    <History className="w-5 h-5 text-slate-400" /> Bid History ({bids.length})
@@ -401,6 +492,7 @@ const ItemDetail = () => {
                     </div>
                  )}
               </div>
+              )}
 
             </div>
           </div>

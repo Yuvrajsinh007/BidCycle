@@ -132,6 +132,12 @@ const sendUnsoldEmail = async (item) => {
 
 // 3. Central Status Checker
 const getComputedStatus = (item) => {
+  // Direct selling items: no time-based logic
+  if (item.listingType === 'direct') {
+    if (item.status === 'out_of_stock' || item.stock === 0) return 'out_of_stock';
+    return 'available';
+  }
+  // Auction items: time-based logic
   if (['sold', 'closed', 'expired', 'paid'].includes(item.status)) return item.status;
   const now = new Date();
   const launch = new Date(item.launchTime || item.createdAt);
@@ -141,7 +147,7 @@ const getComputedStatus = (item) => {
   return 'ended';
 };
 
-const checkAndProcessAuctionStatus = async (item) => {
+const checkAndProcessAuctionStatus = async (item, io) => {
   const now = new Date();
   const launch = new Date(item.launchTime || item.createdAt);
   const end = new Date(item.endTime);
@@ -167,7 +173,17 @@ const checkAndProcessAuctionStatus = async (item) => {
       await item.save(); 
       updated = false;
 
-      // Send emails
+      // Real-time notification: Item Sold
+      if (io) {
+        io.emit('auction_ended', {
+          itemId: item._id,
+          status: 'sold',
+          winner: highestBid.bidder,
+          finalPrice: highestBid.amount
+        });
+      }
+
+      // Send emails (fire-and-forget)
       sendAuctionResultEmails(item, highestBid).catch(err => 
         console.error('Email sending failed:', err)
       );
@@ -175,7 +191,17 @@ const checkAndProcessAuctionStatus = async (item) => {
       item.status = 'expired';
       updated = true;
       
-      // ADD THIS: Send the unsold notification to the seller
+      // Real-time notification: Item Expired
+      if (io) {
+        io.emit('auction_ended', {
+          itemId: item._id,
+          status: 'expired',
+          winner: null,
+          finalPrice: item.currentBid
+        });
+      }
+
+      // Send the unsold notification to the seller
       sendUnsoldEmail(item).catch(err => 
         console.error('Unsold Email sending failed:', err)
       );
@@ -191,14 +217,42 @@ exports.addItem = async (req, res) => {
   try {
     const { 
       title, description, category, basePrice, 
-      auctionDuration, customEndTime, scheduleType, customStartTime 
+      auctionDuration, customEndTime, scheduleType, customStartTime,
+      listingType, price, stock
     } = req.body;
     
     let imageUrls = [];
     if (req.files && req.files.length > 0) imageUrls = req.files.map(file => file.path);
 
-    if (!title || !description || !category || !basePrice) {
+    if (!title || !description || !category) {
       return res.status(400).json({ message: 'Required fields missing.' });
+    }
+
+    // --- DIRECT SELLING ITEM ---
+    if (listingType === 'direct') {
+      if (!price || price <= 0) {
+        return res.status(400).json({ message: 'Price is required for direct selling.' });
+      }
+
+      const item = await Item.create({
+        seller: req.user._id,
+        title, description, category,
+        images: imageUrls,
+        listingType: 'direct',
+        price: parseFloat(price),
+        stock: parseInt(stock) || 1,
+        status: 'available'
+      });
+
+      await item.populate('seller', 'name email');
+      const doc = item.toJSON();
+      doc.status = getComputedStatus(item);
+      return res.status(201).json(doc);
+    }
+
+    // --- AUCTION ITEM (existing logic) ---
+    if (!basePrice) {
+      return res.status(400).json({ message: 'Base price is required for auction.' });
     }
 
     let startTime = new Date();
@@ -225,6 +279,7 @@ exports.addItem = async (req, res) => {
       seller: req.user._id,
       title, description, category,
       images: imageUrls,
+      listingType: 'auction',
       basePrice, currentBid: basePrice,
       auctionDuration: finalDuration,
       launchTime: startTime,
@@ -244,27 +299,26 @@ exports.addItem = async (req, res) => {
 
 exports.getAllItems = async (req, res) => {
   try {
-    const { category, status, search, page = 1, limit = 12 } = req.query;
+    const { category, status, search, listingType, page = 1, limit = 12 } = req.query;
     let query = {};
     
     if (category) query.category = category;
     if (search) query.title = { $regex: search, $options: 'i' };
+    if (listingType && ['auction', 'direct'].includes(listingType)) {
+      query.listingType = listingType;
+    }
 
     let items = await Item.find(query)
       .populate('seller', 'name')
       .populate('winner', 'name')
       .sort({ createdAt: -1 });
 
-    for (let item of items) {
-      await checkAndProcessAuctionStatus(item);
-    }
-
     if (status) {
-        if (status === 'live' || status === 'active') items = items.filter(i => ['active', 'upcoming'].includes(getComputedStatus(i)));
-        else if (status === 'ended') items = items.filter(i => ['sold', 'closed', 'expired', 'ended'].includes(getComputedStatus(i)));
+        if (status === 'live' || status === 'active') items = items.filter(i => ['active', 'upcoming', 'available'].includes(getComputedStatus(i)));
+        else if (status === 'ended') items = items.filter(i => ['sold', 'closed', 'expired', 'ended', 'out_of_stock'].includes(getComputedStatus(i)));
         else items = items.filter(i => getComputedStatus(i) === status);
     } else {
-        items = items.filter(i => ['active', 'upcoming'].includes(getComputedStatus(i)));
+        items = items.filter(i => ['active', 'upcoming', 'available'].includes(getComputedStatus(i)));
     }
 
     const compiledItems = items.map(i => {
@@ -298,7 +352,6 @@ exports.getItemById = async (req, res) => {
       .populate('seller', 'name email')
       .populate('winner', 'name email');
     if (!item) return res.status(404).json({ message: 'Item not found.' });
-    await checkAndProcessAuctionStatus(item);
     const doc = item.toJSON();
     doc.status = getComputedStatus(item);
     res.json(doc);
@@ -310,7 +363,6 @@ exports.getMyItems = async (req, res) => {
     const items = await Item.find({ seller: req.user._id })
       .populate('seller', 'name email')
       .sort({ createdAt: -1 });
-    for (let item of items) await checkAndProcessAuctionStatus(item);
     const compiledItems = items.map(i => {
       const doc = i.toJSON();
       doc.status = getComputedStatus(i);

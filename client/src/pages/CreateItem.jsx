@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { 
   Package, Tag, FileText, IndianRupee, Clock, Calendar, ArrowRight,
-  Upload, X, Image as ImageIcon, ArrowLeft, AlertCircle, CheckCircle2
+  Upload, X, Image as ImageIcon, ArrowLeft, AlertCircle, CheckCircle2,
+  ShoppingBag, Layers
 } from "lucide-react";
 
 const CreateItem = () => {
@@ -11,8 +12,10 @@ const CreateItem = () => {
   const [formData, setFormData] = useState({
     title: "", description: "", category: "", basePrice: "", 
     auctionDuration: "24", customEndTime: "", customStartTime: "",
+    price: "", stock: "1",
   });
   
+  const [listingType, setListingType] = useState("auction");
   const [scheduleType, setScheduleType] = useState("immediate");
   const [durationType, setDurationType] = useState("fixed");
   const [loading, setLoading] = useState(false);
@@ -62,9 +65,17 @@ const CreateItem = () => {
       data.append("title", formData.title);
       data.append("description", formData.description);
       data.append("category", formData.category);
-      data.append("basePrice", formData.basePrice);
-      data.append("scheduleType", scheduleType);
+      data.append("listingType", listingType);
 
+      if (listingType === 'direct') {
+        // Direct selling fields
+        if (!formData.price || parseFloat(formData.price) <= 0) throw new Error("Set a valid price.");
+        data.append("price", formData.price);
+        data.append("stock", formData.stock || "1");
+      } else {
+        // Auction fields
+        data.append("basePrice", formData.basePrice);
+        data.append("scheduleType", scheduleType);
       if (scheduleType === 'scheduled') {
         if (!formData.customStartTime) throw new Error("Select start time.");
         if (new Date(formData.customStartTime).getTime() <= Date.now()) throw new Error("Start time must be future.");
@@ -78,6 +89,7 @@ const CreateItem = () => {
         const startTime = scheduleType === 'scheduled' ? new Date(formData.customStartTime).getTime() : Date.now();
         if (new Date(formData.customEndTime).getTime() <= startTime) throw new Error("End time must be after start time.");
         data.append("customEndTime", formData.customEndTime);
+        }
       }
 
       imageFiles.forEach((file) => data.append("images", file));
@@ -98,8 +110,8 @@ const CreateItem = () => {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Create Listing</h1>
-            <p className="mt-2 text-slate-500 font-medium">Add a new premium item to the global marketplace.</p>
+             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Create Listing</h1>
+             <p className="mt-2 text-slate-500 font-medium">Add a new item to the marketplace — auction or direct sale.</p>
           </div>
           <button onClick={() => navigate("/dashboard")} className="hidden sm:flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -117,6 +129,48 @@ const CreateItem = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* LEFT COLUMN */}
             <div className="lg:col-span-7 space-y-8">
+
+              {/* LISTING TYPE TOGGLE */}
+              <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-slate-100 rounded-xl">
+                    <Layers className="w-6 h-6 text-slate-600" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900">Listing Type</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setListingType('auction')}
+                    className={`p-5 rounded-2xl border-2 text-left transition-all ${
+                      listingType === 'auction'
+                        ? 'border-brand-500 bg-brand-50 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${listingType === 'auction' ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <p className="font-black text-slate-900">Auction</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Buyers bid competitively. Highest bid wins.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setListingType('direct')}
+                    className={`p-5 rounded-2xl border-2 text-left transition-all ${
+                      listingType === 'direct'
+                        ? 'border-brand-500 bg-brand-50 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${listingType === 'direct' ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <p className="font-black text-slate-900">Direct Selling</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Fixed price. Buyers purchase instantly.</p>
+                  </button>
+                </div>
+              </div>
               
               {/* DETAILS */}
               <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8">
@@ -201,17 +255,37 @@ const CreateItem = () => {
                   <div className="p-3 bg-green-50 rounded-xl"><IndianRupee className="w-6 h-6 text-green-600" /></div>
                   <h2 className="text-2xl font-black text-slate-900">Pricing</h2>
                 </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Starting Bid</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><span className="text-slate-400 font-bold">₹</span></div>
-                    <input type="number" name="basePrice" value={formData.basePrice} onChange={handleChange} required min="0.01" step="0.01" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all" placeholder="0.00" />
+
+                {listingType === 'direct' ? (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Fixed Price</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><span className="text-slate-400 font-bold">₹</span></div>
+                        <input type="number" name="price" value={formData.price} onChange={handleChange} required min="1" step="0.01" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all" placeholder="0.00" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-500 mt-2">Buyers pay this exact amount.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Stock Quantity</label>
+                      <input type="number" name="stock" value={formData.stock} onChange={handleChange} min="1" className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all" placeholder="1" />
+                      <p className="text-xs font-semibold text-slate-500 mt-2">How many units are available?</p>
+                    </div>
                   </div>
-                  <p className="text-xs font-semibold text-slate-500 mt-2">Minimum first bid required.</p>
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Starting Bid</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><span className="text-slate-400 font-bold">₹</span></div>
+                      <input type="number" name="basePrice" value={formData.basePrice} onChange={handleChange} required min="0.01" step="0.01" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all" placeholder="0.00" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 mt-2">Minimum first bid required.</p>
+                  </div>
+                )}
               </div>
 
-              {/* TIMING */}
+              {/* TIMING (Auction only) */}
+              {listingType === 'auction' && (
               <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-3 bg-amber-50 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div>
@@ -249,6 +323,7 @@ const CreateItem = () => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Submit / Actions */}
               <div className="flex flex-col gap-3 pt-4">

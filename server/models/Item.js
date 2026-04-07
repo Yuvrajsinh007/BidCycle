@@ -6,28 +6,37 @@ const itemSchema = new mongoose.Schema({
   description: { type: String, required: true },
   category: { type: String, required: true },
   images: [{ type: String }],
-  basePrice: { type: Number, required: true },
   
-  // --- UPDATED BIDDING FIELDS ---
+  // --- LISTING TYPE ---
+  listingType: { type: String, enum: ['auction', 'direct'], default: 'auction' },
+  
+  // --- AUCTION FIELDS ---
+  basePrice: { type: Number, required: function() { return this.listingType === 'auction'; } },
   currentBid: { type: Number, default: 0 },
-  highestMaxBid: { type: Number, default: 0, select: false }, // SECRET: Not sent to frontend
+  highestMaxBid: { type: Number, default: 0, select: false },
   winner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  // -----------------------------
+  auctionDuration: { type: Number, required: function() { return this.listingType === 'auction'; } },
+  launchTime: { type: Date, default: Date.now },
+  endTime: { type: Date, required: function() { return this.listingType === 'auction'; } },
 
-  auctionDuration: { type: Number, required: true }, // in hours
+  // --- DIRECT SELLING FIELDS ---
+  price: { type: Number, required: function() { return this.listingType === 'direct'; } },
+  stock: { type: Number, default: 1, min: 0 },
+
+  // --- COMMON FIELDS ---
   status: { 
     type: String, 
-    enum: ['upcoming', 'active', 'sold', 'closed', 'expired', 'paid'], 
+    enum: ['upcoming', 'active', 'sold', 'closed', 'expired', 'paid', 'available', 'out_of_stock'], 
     default: 'active' 
   },
   createdAt: { type: Date, default: Date.now },
-  launchTime: { type: Date, required: true, default: Date.now },
-  endTime: { type: Date, required: true },
 });
 
 // Virtual for checking if auction is active
 itemSchema.virtual('isActive').get(function() {
-  return this.endTime > new Date() && this.status === 'active';
+  const now = new Date();
+  const launch = new Date(this.launchTime || this.createdAt);
+  return now >= launch && this.endTime > now && this.status === 'active';
 });
 
 // Virtual for time remaining
