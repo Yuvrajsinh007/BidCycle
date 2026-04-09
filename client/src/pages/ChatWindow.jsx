@@ -7,7 +7,7 @@ import {
   Send, User, ArrowLeft, Paperclip, Image as ImageIcon, Video, FileText, MapPin, X, CreditCard, ShieldCheck
 } from 'lucide-react';
 
-const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
   transports: ['websocket']
 });
 
@@ -82,7 +82,7 @@ const ChatWindow = () => {
       setIsProcessingPayment(true);
       const { data } = await api.post(`/payment/create-order/${itemId}`);
       const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID, 
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
         amount: data.amount, currency: data.currency, name: "BidCycle", description: `Authorization for ${data.name}`, order_id: data.orderId,
         handler: async function (res) {
           try { await api.post('/payment/verify', { ...res, itemId, amount: data.amount }); } 
