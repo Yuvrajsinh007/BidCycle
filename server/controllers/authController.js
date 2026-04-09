@@ -288,7 +288,10 @@ exports.forgotPassword = async (req, res) => {
     // Generate Tokens
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    const otp = generateOTP(); // UPDATED: Use utility function
+    const otp = generateOTP();
+
+    // Delete any existing reset tokens for this user before creating a new one
+    await PasswordResetToken.deleteMany({ user: user._id });
 
     // Save reset token with OTP
     await PasswordResetToken.create({
@@ -317,10 +320,31 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+// Verify Reset OTP
+exports.verifyResetOtp = async (req, res) => {
+  try {
+    const { token, otp } = req.body;
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const resetToken = await PasswordResetToken.findOne({
+      token: hashedToken,
+      expiresAt: { $gt: Date.now() },
+    });
+
+    if (!resetToken) return res.status(400).json({ message: 'Invalid or expired session' });
+    if (resetToken.otp !== otp) return res.status(400).json({ message: 'Invalid OTP code' });
+
+    res.json({ success: true, message: 'OTP verified' });
+  } catch (error) {
+    console.error('Verify reset otp error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Reset password
 exports.resetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body;
+    const { token, otp, password } = req.body;
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -331,6 +355,10 @@ exports.resetPassword = async (req, res) => {
 
     if (!resetToken) {
       return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    if (resetToken.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP code' });
     }
 
     const user = await User.findById(resetToken.user);

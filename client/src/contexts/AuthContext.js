@@ -138,6 +138,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyResetOtp = async (token, otp) => {
+    try {
+      await api.post('/auth/verify-reset-otp', { token, otp });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Invalid OTP code',
+      };
+    }
+  };
+
   const resendVerificationOtp = async (email) => {
     try {
       const response = await api.post('/auth/resend-verification', { email });
@@ -159,6 +171,7 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     verifyEmail,
+    verifyResetOtp,
     resendVerificationOtp,
   };
 

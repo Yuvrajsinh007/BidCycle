@@ -10,6 +10,7 @@ const {
   deleteAccount,
   forgotPassword, 
   resetPassword,
+  verifyResetOtp,
   verifyEmail,
   resendVerification
 } = require('../controllers/authController');
@@ -22,6 +23,7 @@ router.post('/login', login);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', forgotPassword);
+router.post('/verify-reset-otp', verifyResetOtp);
 
 // ✅ FIX: Changed from POST to PUT to match frontend update logic
 router.put('/reset-password', resetPassword);

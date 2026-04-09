@@ -12,7 +12,7 @@ const VerifyOtp = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { verifyEmail, resendVerificationOtp } = useAuth();
+  const { verifyEmail, resendVerificationOtp, verifyResetOtp } = useAuth();
   const { email, token, type } = location.state || {};
 
   // If there's no email state, kick them back to login
@@ -44,8 +44,14 @@ const VerifyOtp = () => {
       }
       setLoading(false);
     } else {
-      // Legacy password reset flow
-      navigate("/reset-password", { state: { token, otp, email } });
+      setLoading(true);
+      const result = await verifyResetOtp(token, otp);
+      if (result.success) {
+        navigate("/reset-password", { state: { token, otp, email } });
+      } else {
+        setError(result.message);
+      }
+      setLoading(false);
     }
   };
 

@@ -5,7 +5,7 @@ const passwordResetTokenSchema = new mongoose.Schema({
   token: { type: String, required: true },
   otp: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
-  expiresAt: { type: Date, required: true },
+  expiresAt: { type: Date, required: true, expires: 0 },
 });
 
 module.exports = mongoose.model('PasswordResetToken', passwordResetTokenSchema);
