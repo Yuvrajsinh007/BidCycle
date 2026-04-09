@@ -15,6 +15,13 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const getFileUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL.split('/api')[0];
+    return `${baseUrl}/${path.replace(/\\/g, '/')}`;
+  };
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
@@ -61,6 +68,26 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const deleteNotification = async (id) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications(notifications.filter(n => n._id !== id));
+      setUnreadCount(prev => Math.max(0, prev - (notifications.find(n => n._id === id)?.read ? 0 : 1)));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      await api.delete('/notifications');
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+    }
   };
 
   return (
@@ -157,22 +184,35 @@ const Navbar = () => {
                       )}
                    </button>
                    
-                   {showNotifications && (
-                      <div 
-                         className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-fadeIn"
-                         onMouseLeave={() => setShowNotifications(false)}
-                      >
-                         <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center mb-2">
-                             <span className="font-bold text-slate-900">Notifications</span>
-                             {unreadCount > 0 && <span className="text-[10px] font-black uppercase text-brand-600 bg-brand-50 px-2 py-0.5 rounded-lg">{unreadCount} New</span>}
-                         </div>
+                    {showNotifications && (
+                       <div 
+                          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-fadeIn"
+                          onMouseLeave={() => setShowNotifications(false)}
+                       >
+                          <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center mb-2">
+                              <span className="font-bold text-slate-900">Notifications</span>
+                              <div className="flex items-center gap-2">
+                                {notifications.length > 0 && (
+                                  <button onClick={clearAllNotifications} className="text-[10px] font-bold uppercase text-slate-400 hover:text-red-500 transition-colors">Clear All</button>
+                                )}
+                                {unreadCount > 0 && <span className="text-[10px] font-black uppercase text-brand-600 bg-brand-50 px-2 py-0.5 rounded-lg">{unreadCount} New</span>}
+                              </div>
+                          </div>
                          <div className="max-h-80 overflow-y-auto custom-scrollbar">
                              {notifications.length === 0 ? (
                                 <div className="text-center p-6 text-slate-400 font-medium text-sm">No notifications yet</div>
                              ) : (
                                 notifications.map(n => (
-                                   <div key={n._id} className={`px-4 py-3 hover:bg-slate-50 border-l-2 transition-colors ${!n.read ? 'border-brand-500 bg-brand-50/20' : 'border-transparent'}`}>
-                                      <p className="text-sm font-bold text-slate-800">{n.message}</p>
+                                   <div key={n._id} className={`group px-4 py-3 hover:bg-slate-50 border-l-2 transition-colors relative ${!n.read ? 'border-brand-500 bg-brand-50/20' : 'border-transparent'}`}>
+                                      <div className="flex justify-between items-start gap-2">
+                                         <p className="text-sm font-bold text-slate-800 flex-1">{n.message}</p>
+                                         <button 
+                                           onClick={() => deleteNotification(n._id)}
+                                           className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all"
+                                         >
+                                           <X className="w-3.5 h-3.5" />
+                                         </button>
+                                      </div>
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
                                    </div>
                                 ))
@@ -189,7 +229,7 @@ const Navbar = () => {
                     <button className="flex items-center gap-2 p-1 pr-2 rounded-full border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all focus:outline-none">
                       <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center overflow-hidden border border-brand-100">
                         {user.profilePic ? (
-                          <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+                          <img src={getFileUrl(user.profilePic)} alt={user.name} className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-brand-600 font-bold text-sm">
                             {user.name.charAt(0).toUpperCase()}
@@ -248,29 +288,122 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute w-full bg-white border-b border-slate-200 shadow-xl pb-6 px-4 pt-2">
-          {/* Mobile menu content logic goes here. Keeping it brief for structural brevity */}
            {user ? (
             <div className="space-y-1">
                <div className="p-3 mb-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center border border-brand-100">
-                    <span className="text-brand-600 font-bold">{user.name.charAt(0)}</span>
+                  <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center overflow-hidden border border-brand-100">
+                    {user.profilePic ? (
+                      <img src={getFileUrl(user.profilePic)} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-brand-600 font-bold">{user.name.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 text-sm">{user.name}</h4>
                     <p className="text-xs text-slate-500">{user.email}</p>
                   </div>
                </div>
-               <Link to="/market" className="block px-3 py-2 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">Marketplace</Link>
-               <Link to="/dashboard" className="block px-3 py-2 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">Dashboard</Link>
+
+               <div className="grid grid-cols-1 gap-1 mb-6">
+                 <div className="px-3 mb-2">
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Navigation</span>
+                 </div>
+                 <Link to="/market" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                   <Gavel className="w-4 h-4 mr-3 text-slate-400" /> Marketplace
+                 </Link>
+
+                 {user.role !== 'Admin' && (
+                   <Link to="/dashboard" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                     <LayoutDashboard className="w-4 h-4 mr-3 text-slate-400" /> Dashboard
+                   </Link>
+                 )}
+
+                 {user.role === 'Seller' && (
+                   <Link to="/create-item" className="flex items-center px-3 py-2.5 rounded-lg text-brand-700 font-bold bg-brand-50 hover:bg-brand-100 transition-colors">
+                     <Plus className="w-4 h-4 mr-3 text-brand-600" /> Sell Item
+                   </Link>
+                 )}
+
+                 {user.role === 'Buyer' && (
+                   <>
+                     <Link to="/watchlist" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <Heart className="w-4 h-4 mr-3 text-slate-400" /> Watchlist
+                     </Link>
+                     <Link to="/cart" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <ShoppingBag className="w-4 h-4 mr-3 text-slate-400" /> Cart
+                     </Link>
+                     <Link to="/my-orders" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <List className="w-4 h-4 mr-3 text-slate-400" /> My Orders
+                     </Link>
+                   </>
+                 )}
+
+                 {user.role === 'Admin' && (
+                   <>
+                     <div className="mt-4 px-3 mb-2">
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Administration</span>
+                     </div>
+                     <Link to="/admin" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <LayoutDashboard className="w-4 h-4 mr-3 text-slate-400" /> Overview
+                     </Link>
+                     <Link to="/admin/users" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <Users className="w-4 h-4 mr-3 text-slate-400" /> Manage Users
+                     </Link>
+                     <Link to="/admin/items" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <Package className="w-4 h-4 mr-3 text-slate-400" /> Manage Items
+                     </Link>
+                     <Link to="/admin/bids" className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                       <Gavel className="w-4 h-4 mr-3 text-slate-400" /> Manage Bids
+                     </Link>
+                   </>
+                 )}
+               </div>
+
                {user.role === 'Buyer' && (
-                 <Link to="/my-orders" className="block px-3 py-2 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">My Orders</Link>
+                 <div className="mb-6">
+                    <div className="px-3 mb-3 flex items-center justify-between">
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Notifications</span>
+                       {notifications.length > 0 && (
+                          <button onClick={clearAllNotifications} className="text-[10px] font-bold text-red-500 hover:text-red-600">Clear All</button>
+                       )}
+                    </div>
+                    <div className="max-h-64 overflow-y-auto space-y-2 px-2 custom-scrollbar">
+                       {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-slate-400 text-xs font-medium bg-slate-50 rounded-xl">No notifications</div>
+                       ) : (
+                          notifications.map(n => (
+                             <div key={n._id} className={`p-3 rounded-xl border transition-all flex justify-between items-start gap-3 ${!n.read ? 'bg-brand-50 border-brand-100' : 'bg-white border-slate-100'}`}>
+                                <div>
+                                   <p className="text-xs font-bold text-slate-800 leading-relaxed">{n.message}</p>
+                                   <span className="text-[10px] font-bold text-slate-400 mt-1 block">{new Date(n.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <button onClick={() => deleteNotification(n._id)} className="p-1 text-slate-300 hover:text-red-500">
+                                   <X className="w-3.5 h-3.5" />
+                                </button>
+                             </div>
+                          ))
+                       )}
+                    </div>
+                 </div>
                )}
-               <button onClick={handleLogout} className="block w-full text-left px-3 py-2 rounded-lg text-red-600 font-semibold hover:bg-red-50 mt-4">Sign Out</button>
+
+               <div className="border-t border-slate-100 pt-4 mb-2">
+                 <div className="px-3 mb-2">
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Settings</span>
+                 </div>
+                 <Link to={user.role === 'Admin' ? '/admin-account' : '/account'} className="flex items-center px-3 py-2.5 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+                   <UserIcon className="w-4 h-4 mr-3 text-slate-400" /> Account Settings
+                 </Link>
+               </div>
+
+               <button onClick={handleLogout} className="flex w-full items-center px-3 py-2.5 rounded-lg text-red-600 font-bold hover:bg-red-50 transition-colors">
+                 <LogOut className="w-4 h-4 mr-3 text-red-500" /> Sign Out
+               </button>
             </div>
            ) : (
-            <div className="space-y-2 mt-2">
-              <Link to="/login" className="block w-full text-center px-4 py-3 bg-slate-50 text-slate-700 font-bold rounded-lg">Sign In</Link>
-              <Link to="/register" className="block w-full text-center px-4 py-3 bg-slate-900 text-white font-bold rounded-lg shadow-sm">Get Started</Link>
+            <div className="space-y-3 mt-2">
+              <Link to="/login" className="block w-full text-center px-4 py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-xl active:scale-95 transition-transform">Sign In</Link>
+              <Link to="/register" className="block w-full text-center px-4 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-md shadow-slate-900/20 active:scale-95 transition-transform">Get Started</Link>
             </div>
            )}
         </div>

@@ -107,7 +107,7 @@ const Home = () => {
       
       {/* Sleek Hero Section */}
       <div className="bg-slate-900 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 flex flex-col items-center text-center relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-24 flex flex-col items-center text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black opacity-50"></div>
           <div className="relative z-10 max-w-3xl space-y-6 animate-slideUp">
             <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-bold uppercase tracking-widest text-brand-400 bg-brand-400/10 rounded-full border border-brand-400/20">
@@ -127,7 +127,7 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {/* Modern Filter Bar */}
-        <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 mb-8 sticky top-24 z-30 transition-shadow hover:shadow-md flex flex-col lg:flex-row gap-2">
+        <div className="bg-white p-3 lg:p-2 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 sticky top-20 md:top-24 z-30 transition-shadow hover:shadow-md flex flex-col lg:flex-row gap-3 md:gap-2">
           
           {/* Main Search */}
           <div className="relative flex-grow flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white transition-all">
@@ -144,68 +144,70 @@ const Home = () => {
           <div className="h-px lg:h-auto lg:w-px bg-slate-200 mx-2 hidden lg:block"></div>
 
           {/* Quick Filters */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
              
-             {/* Status Filters */}
-             <div className="flex bg-slate-100 p-1 rounded-xl w-max border border-slate-200">
-               <button 
-                  onClick={() => handleStatusChange('active')}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${status === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-               >
-                 Live Listings
-               </button>
-               <button 
-                  onClick={() => handleStatusChange('upcoming')}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${status === 'upcoming' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-               >
-                 Upcoming
-               </button>
-               <button 
-                  onClick={() => handleStatusChange('ended')}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors ${status === 'ended' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-               >
-                 Ended
-               </button>
-             </div>
-
-             {/* Type Filters */}
-             <div className="flex bg-slate-100 p-1 rounded-xl w-max border border-slate-200">
-               <button 
-                  onClick={() => handleTypeChange('all')}
-                  className={`px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold rounded-lg transition-colors ${listingType === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-               >
-                 <Layers className="w-3.5 h-3.5" /> All Types
-               </button>
-               <button 
-                  onClick={() => handleTypeChange('auction')}
-                  className={`px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold rounded-lg transition-colors ${listingType === 'auction' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-               >
-                 <Gavel className="w-3.5 h-3.5" /> Auctions
-               </button>
-               <button 
-                  onClick={() => handleTypeChange('direct')}
-                  className={`px-4 py-1.5 flex items-center gap-1.5 text-xs font-bold rounded-lg transition-colors ${listingType === 'direct' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-               >
-                 <ShoppingBag className="w-3.5 h-3.5" /> Buy Now
-               </button>
-             </div>
-
-             {/* Category Select (Sleek) */}
-             <div className="relative group min-w-[160px]">
-                <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-xl border border-slate-100 transition-colors w-full cursor-pointer">
-                  <Shapes className="w-4 h-4 text-slate-500" />
-                  <select
-                    value={category || "All Categories"}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 cursor-pointer appearance-none outline-none"
+             {/* Filter Groups - Horizontally Scrollable on Mobile */}
+             <div className="flex lg:items-center gap-3 overflow-x-auto pb-1 lg:pb-0 scrollbar-hide -mx-1 px-1">
+                {/* Status Filters */}
+                <div className="flex bg-slate-100 p-1 rounded-xl w-max border border-slate-200 flex-shrink-0">
+                  <button 
+                      onClick={() => handleStatusChange('active')}
+                      className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${status === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                   >
-                    {CATEGORIES.map(cat => (
-                       <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                    Live Listings
+                  </button>
+                  <button 
+                      onClick={() => handleStatusChange('upcoming')}
+                      className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${status === 'upcoming' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Upcoming
+                  </button>
+                  <button 
+                      onClick={() => handleStatusChange('ended')}
+                      className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${status === 'ended' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Ended
+                  </button>
+                </div>
+
+                {/* Type Filters */}
+                <div className="flex bg-slate-100 p-1 rounded-xl w-max border border-slate-200 flex-shrink-0">
+                  <button 
+                      onClick={() => handleTypeChange('all')}
+                      className={`px-3 md:px-4 py-1.5 flex items-center gap-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${listingType === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <Layers className="w-3 h-3" /> All
+                  </button>
+                  <button 
+                      onClick={() => handleTypeChange('auction')}
+                      className={`px-3 md:px-4 py-1.5 flex items-center gap-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${listingType === 'auction' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <Gavel className="w-3 h-3" /> Auctions
+                  </button>
+                  <button 
+                      onClick={() => handleTypeChange('direct')}
+                      className={`px-3 md:px-4 py-1.5 flex items-center gap-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${listingType === 'direct' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <ShoppingBag className="w-3 h-3" /> Buy Now
+                  </button>
+                </div>
+
+                {/* Category Select (Sleek) */}
+                <div className="relative group min-w-[140px] flex-shrink-0">
+                    <div className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-slate-100 transition-colors w-full cursor-pointer">
+                      <Shapes className="w-3.5 h-3.5 text-slate-500" />
+                      <select
+                        value={category || "All Categories"}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                        className="w-full bg-transparent border-none focus:ring-0 text-[10px] md:text-sm font-bold text-slate-700 cursor-pointer appearance-none outline-none"
+                      >
+                        {CATEGORIES.map(cat => (
+                           <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
                 </div>
              </div>
-
           </div>
         </div>
 
@@ -217,7 +219,7 @@ const Home = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
               {items.length === 0 ? (
                 <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 text-center animate-fadeIn">
                   <div className="p-4 bg-slate-50 rounded-full mb-4 border border-slate-100">

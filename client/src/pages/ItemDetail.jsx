@@ -294,7 +294,7 @@ const ItemDetail = () => {
 
           {/* RIGHT: Sticky Bidding Panel */}
           <div className="lg:col-span-5">
-            <div className="sticky top-28 bg-white rounded-[2rem] p-6 sm:p-8 shadow-2xl shadow-slate-200/50 border border-slate-100">
+            <div className="sticky top-28 bg-white rounded-[1.5rem] md:rounded-[2rem] p-5 sm:p-8 shadow-2xl shadow-slate-200/50 border border-slate-100">
               
               {/* Header */}
               <div className="flex justify-between items-start mb-6">
@@ -317,7 +317,7 @@ const ItemDetail = () => {
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 leading-tight mb-8">
+              <h1 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight mb-6 md:mb-8">
                 {item.title}
               </h1>
 

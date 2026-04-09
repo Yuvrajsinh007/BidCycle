@@ -39,7 +39,7 @@ const Landing = () => {
              <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" /> The Next Generation of Auctions
           </div>
           
-          <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight leading-[1.1]">
+          <h1 className="text-4xl sm:text-7xl font-black text-white tracking-tight leading-[1.1]">
             Own the extraordinary, <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-indigo-400">
                bid in real-time.
@@ -82,7 +82,7 @@ const Landing = () => {
       </div>
 
       {/* Features Grid */}
-      <div className="bg-black relative z-10 py-24 border-t border-white/5">
+      <div className="bg-black relative z-10 py-16 md:py-24 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center md:text-left mb-16">
             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">Engineered for Action.</h2>

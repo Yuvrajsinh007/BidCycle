@@ -49,3 +49,33 @@ exports.dispatchNotification = async ({ userId, userEmail, type, message, relate
     console.error('Dispatch notification error:', error);
   }
 };
+
+// Delete a single notification
+exports.deleteNotification = async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id
+    });
+    
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    
+    res.json({ message: 'Notification deleted' });
+  } catch (error) {
+    console.error('Delete notification error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Clear all notifications for a user
+exports.clearAllNotifications = async (req, res) => {
+  try {
+    await Notification.deleteMany({ user: req.user._id });
+    res.json({ message: 'All notifications cleared' });
+  } catch (error) {
+    console.error('Clear notifications error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

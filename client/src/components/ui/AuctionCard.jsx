@@ -55,7 +55,7 @@ const AuctionCard = ({ item }) => {
       className="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-slate-300 transition-all duration-300 flex flex-col h-full animate-fadeIn"
     >
       {/* Image Container */}
-      <div className="relative h-56 bg-slate-50 overflow-hidden">
+      <div className="relative h-40 md:h-56 bg-slate-50 overflow-hidden">
         {item.images && item.images.length > 0 ? (
           <img
             src={item.images[0]}
@@ -64,51 +64,51 @@ const AuctionCard = ({ item }) => {
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-             <Tag className="w-8 h-8 mb-2 opacity-30" />
-             <span className="text-sm font-medium">No Image</span>
+             <Tag className="w-6 h-6 md:w-8 md:h-8 mb-2 opacity-30" />
+             <span className="text-[10px] md:text-sm font-medium">No Image</span>
           </div>
         )}
         
         {/* Top Badges */}
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+        <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex flex-col gap-1">
           {/* Listing Type Badge */}
-          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${
+          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 rounded-md text-[8px] md:text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${
             isDirect 
               ? 'bg-amber-100/90 text-amber-800 border-amber-200' 
               : 'bg-indigo-100/90 text-indigo-700 border-indigo-200'
           }`}>
-            {isDirect ? <><ShoppingBag className="w-3 h-3" /> Buy Now</> : <><Gavel className="w-3 h-3" /> Auction</>}
+            {isDirect ? <><ShoppingBag className="w-2.5 h-2.5 md:w-3 md:h-3" /> Buy</> : <><Gavel className="w-2.5 h-2.5 md:w-3 md:h-3" /> Auction</>}
           </span>
           {/* Status Badge */}
-          <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${conf.bg} ${conf.text} ${conf.border}`}>
+          <span className={`inline-flex items-center px-1.5 py-0.5 md:px-2 md:py-1 rounded-md text-[8px] md:text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border ${conf.bg} ${conf.text} ${conf.border}`}>
             {conf.label}
           </span>
         </div>
         
-        <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-md text-slate-700 text-[10px] font-bold px-2 py-1 rounded-md shadow-sm border border-slate-100 uppercase tracking-wide">
+        <div className="absolute top-2 right-2 md:top-3 md:right-3 z-10 bg-white/90 backdrop-blur-md text-slate-700 text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md shadow-sm border border-slate-100 uppercase tracking-wide">
           {item.category}
         </div>
       </div>
 
       {/* Content Container */}
-      <div className="p-5 flex flex-col flex-grow">
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-slate-900 mb-1 line-clamp-1 group-hover:text-brand-600 transition-colors">
+      <div className="p-3 md:p-5 flex flex-col flex-grow">
+        <div className="mb-3 md:mb-4">
+          <h3 className="text-sm md:text-lg font-bold text-slate-900 mb-0.5 md:mb-1 line-clamp-1 group-hover:text-brand-600 transition-colors">
             {item.title}
           </h3>
-          <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">
+          <p className="text-slate-500 text-[10px] md:text-sm line-clamp-1 md:line-clamp-2 leading-relaxed">
             {item.description}
           </p>
         </div>
 
         <div className="mt-auto space-y-4">
-          <div className="flex justify-between items-end border-t border-slate-100 pt-4">
+          <div className="flex justify-between items-end border-t border-slate-100 pt-3 md:pt-4">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
-                {isDirect ? 'Price' : (currentStatus === 'upcoming' ? 'Starting Bid' : 'Current Bid')}
+              <p className="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
+                {isDirect ? 'Price' : (currentStatus === 'upcoming' ? 'Start' : 'Current')}
               </p>
-              <div className="flex items-center gap-1 text-slate-900 font-extrabold text-xl">
-                <IndianRupee className="w-4 h-4 text-slate-400" strokeWidth={3} />
+              <div className="flex items-center gap-0.5 md:gap-1 text-slate-900 font-extrabold text-sm md:text-xl">
+                <IndianRupee className="w-3 h-3 md:w-4 md:h-4 text-slate-400" strokeWidth={3} />
                 {isDirect ? item.price : (item.currentBid || item.basePrice)}
               </div>
             </div>
@@ -124,18 +124,18 @@ const AuctionCard = ({ item }) => {
           </div>
 
           <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-                <User className="w-3 h-3 text-slate-400" />
+            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-slate-500">
+              <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
+                <User className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-400" />
               </div>
-              <span className="truncate max-w-[100px] font-medium flex items-center gap-1">
+              <span className="truncate max-w-[60px] md:max-w-[100px] font-medium flex items-center gap-1">
                  {item.seller?.name || 'Unknown'}
-                 {item.seller?.kycStatus === 'approved' && <BadgeCheck className="w-3.5 h-3.5 text-brand-500" title="Verified Seller" />}
+                 {item.seller?.kycStatus === 'approved' && <BadgeCheck className="w-3 md:w-3.5 h-3 md:h-3.5 text-brand-500" title="Verified Seller" />}
               </span>
             </div>
             {item.seller?.totalReviews > 0 && (
-               <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
-                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+               <div className="flex items-center gap-1 text-[8px] md:text-[10px] font-bold text-slate-500">
+                  <Star className="w-2.5 h-2.5 md:w-3 md:h-3 text-yellow-500 fill-yellow-500" />
                   {item.seller.averageRating}
                </div>
             )}

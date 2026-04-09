@@ -15,6 +15,13 @@ const TabWrapper = ({ children }) => (
 const Account = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  
+  const getFileUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL.split('/api')[0];
+    return `${baseUrl}/${path.replace(/\\/g, '/')}`;
+  };
 
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
@@ -114,11 +121,11 @@ const Account = () => {
 
   return (
     // FIX 1: Adjusted padding classes for responsive top spacing
-    <div className="min-h-screen bg-slate-50 px-4 md:px-8 pb-12 pt-28 md:pt-36 lg:pt-40">
+    <div className="min-h-screen bg-slate-50 px-4 md:px-8 pb-12 pt-24 md:pt-36 lg:pt-40">
       <div className="max-w-6xl mx-auto animate-fadeIn">
-        <div className="mb-10">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Account Settings</h1>
-          <p className="text-slate-500 font-medium mt-2">Manage your global identity and security preferences.</p>
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Account Settings</h1>
+          <p className="text-slate-500 font-medium mt-1.5 text-sm md:text-base">Manage your global identity and security preferences.</p>
         </div>
 
         {message.text && (
@@ -137,11 +144,11 @@ const Account = () => {
           {/* SIDEBAR */}
           {/* FIX 3: Changed to md:sticky and md:top-36 */}
           <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden h-fit md:sticky md:top-36 z-10">
-            <div className="p-8 bg-slate-900 text-white text-center relative overflow-hidden">
+            <div className="p-6 md:p-8 bg-slate-900 text-white text-center relative overflow-hidden">
                <div className="absolute inset-0 bg-brand-500 opacity-20 mix-blend-overlay"></div>
               <div className="relative w-24 h-24 rounded-full border-4 border-slate-800 overflow-hidden mx-auto mb-4 shadow-2xl bg-slate-800 flex items-center justify-center">
                 {profilePicPreview || user.profilePic ? (
-                  <img src={profilePicPreview || user.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={getFileUrl(profilePicPreview || user.profilePic)} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-4xl font-black text-slate-500">{user.name?.charAt(0).toUpperCase()}</span>
                 )}
@@ -171,7 +178,7 @@ const Account = () => {
           </div>
 
           {/* CONTENT */}
-          <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8 sm:p-12 min-h-[500px]">
+          <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-5 sm:p-8 md:p-12 min-h-[500px]">
             
             {activeTab === "profile" && (
               <TabWrapper>
@@ -265,7 +272,7 @@ const Account = () => {
 
                 <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50">
                   <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl mb-10 border-4 border-white bg-slate-200 flex items-center justify-center text-slate-400">
-                    {profilePicPreview ? <img src={profilePicPreview} alt="Preview" className="w-full h-full object-cover" /> : <User className="w-20 h-20" />}
+                    {profilePicPreview ? <img src={getFileUrl(profilePicPreview)} alt="Preview" className="w-full h-full object-cover" /> : <User className="w-20 h-20" />}
                   </div>
                   
                   <div className="w-full max-w-sm space-y-4">

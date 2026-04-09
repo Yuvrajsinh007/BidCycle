@@ -8,9 +8,9 @@ import {
 } from 'lucide-react';
 
 const StatCard = ({ icon: Icon, title, value, colorClass }) => (
-  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5 hover:border-slate-300 transition-colors">
-    <div className={`p-4 rounded-xl ${colorClass}`}>
-      <Icon className="w-6 h-6" />
+  <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 md:gap-5 hover:border-slate-300 transition-colors">
+    <div className={`p-3 md:p-4 rounded-xl ${colorClass}`}>
+      <Icon className="w-5 h-5 md:w-6 md:h-6" />
     </div>
     <div>
       <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mb-1">{title}</p>
@@ -267,9 +267,9 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 pt-20 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 border-b border-slate-200 pb-6">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-slate-500 font-medium mt-2">
+        <div className="mb-6 border-b border-slate-200 pb-6">
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Dashboard</h1>
+          <p className="text-slate-500 font-medium mt-1.5 text-sm md:text-base">
             Welcome back, <span className="font-bold text-slate-900">{user.name}</span>
           </p>
         </div>
