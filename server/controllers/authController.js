@@ -4,7 +4,9 @@ const bcrypt = require('bcryptjs');
 // REMOVED: const nodemailer = require('nodemailer');
 const PasswordResetToken = require('../models/PasswordResetToken');
 const crypto = require('crypto');
-const { sendOtpEmail, generateOTP } = require('../utils/emailService'); // ADDED
+const { sendOtpEmail, generateOTP } = require('../utils/emailService');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -101,6 +103,108 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Google Login
+exports.googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { name, email, picture, sub } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+
+    if (user) {
+      if (user.isBanned) {
+        return res.status(403).json({ message: 'Your account has been suspended' });
+      }
+      
+      // Link Google ID if not already linked
+      if (!user.googleId) {
+        user.googleId = sub;
+      }
+      
+      // Automatically verify if they log in via Google
+      if (!user.isVerified) {
+        user.isVerified = true;
+      }
+      
+      await user.save();
+
+      return res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address,
+        bio: user.bio,
+        isBanned: user.isBanned,
+        profilePic: user.profilePic,
+        token: generateToken(user._id),
+      });
+    } else {
+      // NEW USER: Return info so frontend can ask for Role
+      return res.json({
+        isNewUser: true,
+        profile: { name, email, picture }
+      });
+    }
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(401).json({ message: 'Invalid Google token' });
+  }
+};
+
+// Google Signup (Complete Registration)
+exports.googleSignup = async (req, res) => {
+  try {
+    const { credential, role } = req.body;
+
+    if (!['Buyer', 'Seller'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role selected' });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { name, email, picture, sub } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+
+    if (user) {
+      return res.status(400).json({ message: 'User already exists. Please login.' });
+    }
+
+    // Create new user with selected role
+    user = await User.create({
+      name,
+      email,
+      profilePic: picture,
+      googleId: sub,
+      isVerified: true,
+      role: role
+    });
+
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isBanned: user.isBanned,
+      profilePic: user.profilePic,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error('Google signup error:', error);
+    res.status(401).json({ message: 'Authentication failed. Please try again.' });
   }
 };
 

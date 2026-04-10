@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { type: String, required: false }, // Make optional for Google users
+  googleId: { type: String, unique: true, sparse: true }, // Add Google ID
   role: {
     type: String,
     enum: ['Seller', 'Buyer', 'Admin'],

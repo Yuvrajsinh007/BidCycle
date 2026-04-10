@@ -1,7 +1,91 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Gavel, AlertCircle } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Gavel, AlertCircle, ShoppingBag, Store, CheckCircle, User as UserIcon } from "lucide-react";
+import { GoogleLogin } from '@react-oauth/google';
+
+const RoleModal = ({ isOpen, profile, onSelect, loading }) => {
+  const [selected, setSelected] = useState('Buyer');
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fadeIn" />
+      
+      {/* Modal Content */}
+      <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
+        <div className="p-8 sm:p-12">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <div className="relative inline-block mb-6">
+              <img 
+                src={profile?.picture} 
+                alt={profile?.name} 
+                className="w-20 h-20 rounded-full border-4 border-white shadow-xl bg-slate-100"
+              />
+              <div className="absolute -bottom-1 -right-1 bg-teal-500 rounded-full p-1.5 border-2 border-white">
+                <CheckCircle className="w-4 h-4 text-white" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 mb-2">One last step!</h2>
+            <p className="text-slate-500 font-medium italic">Welcome, {profile?.name.split(' ')[0]}</p>
+            <p className="text-slate-500 font-medium mt-1">Please select how you want to use BidCycle</p>
+          </div>
+
+          {/* Role Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+            <button
+              onClick={() => setSelected('Buyer')}
+              className={`relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all group ${
+                selected === 'Buyer' 
+                ? 'border-slate-900 bg-slate-900 text-white shadow-xl scale-[1.02]' 
+                : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center transition-colors ${
+                selected === 'Buyer' ? 'bg-white/10' : 'bg-white'
+              }`}>
+                <ShoppingBag className={`w-6 h-6 ${selected === 'Buyer' ? 'text-white' : 'text-slate-900'}`} />
+              </div>
+              <span className="font-black tracking-tight text-lg mb-1">Buyer</span>
+              <span className={`text-xs font-medium ${selected === 'Buyer' ? 'text-slate-300' : 'text-slate-400'}`}>I want to bid and buy items</span>
+              {selected === 'Buyer' && <div className="absolute top-3 right-3"><CheckCircle className="w-5 h-5" /></div>}
+            </button>
+
+            <button
+              onClick={() => setSelected('Seller')}
+              className={`relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all group ${
+                selected === 'Seller' 
+                ? 'border-slate-900 bg-slate-900 text-white shadow-xl scale-[1.02]' 
+                : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center transition-colors ${
+                selected === 'Seller' ? 'bg-white/10' : 'bg-white'
+              }`}>
+                <Store className={`w-6 h-6 ${selected === 'Seller' ? 'text-white' : 'text-slate-900'}`} />
+              </div>
+              <span className="font-black tracking-tight text-lg mb-1">Seller</span>
+              <span className={`text-xs font-medium ${selected === 'Seller' ? 'text-slate-300' : 'text-slate-400'}`}>I want to list and sell items</span>
+              {selected === 'Seller' && <div className="absolute top-3 right-3"><CheckCircle className="w-5 h-5" /></div>}
+            </button>
+          </div>
+
+          {/* Action Button */}
+          <button
+            onClick={() => onSelect(selected)}
+            disabled={loading}
+            className="w-full py-4 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-70 disabled:scale-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            {loading ? <span className="animate-pulse">Setting up your account...</span> : <>Confirm & Continue <ArrowRight className="w-5 h-5 ml-1" /></>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -9,8 +93,47 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { login } = useAuth();
+  // Google multi-step signup state
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [googleInfo, setGoogleInfo] = useState({ credential: null, profile: null });
+
+  const { login, googleLogin, googleSignup } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setError("");
+    const result = await googleLogin(credentialResponse.credential);
+    
+    if (result.success) {
+      if (result.isNewUser) {
+        // Stop and show role selection
+        setGoogleInfo({ 
+          credential: credentialResponse.credential, 
+          profile: result.profile 
+        });
+        setShowRoleModal(true);
+      } else {
+        navigate("/market");
+      }
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
+  };
+
+  const handleRoleSelection = async (role) => {
+    setLoading(true);
+    setError("");
+    const result = await googleSignup(googleInfo.credential, role);
+    if (result.success) {
+      navigate("/market");
+    } else {
+      setError(result.message);
+      setShowRoleModal(false);
+    }
+    setLoading(false);
+  };
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -37,6 +160,13 @@ const Login = () => {
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen w-full bg-slate-50">
+      
+      <RoleModal 
+        isOpen={showRoleModal} 
+        profile={googleInfo.profile} 
+        onSelect={handleRoleSelection} 
+        loading={loading} 
+      />
       
       {/* LEFT: Branding/Image — Sticky on desktop */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-black lg:h-screen lg:sticky lg:top-0 overflow-hidden shadow-2xl">
@@ -85,6 +215,22 @@ const Login = () => {
                <p className="text-sm font-bold text-red-700">{error}</p>
             </div>
           )}
+
+          <div className="mb-6">
+            <GoogleLogin
+               onSuccess={handleGoogleSuccess}
+               onError={() => setError("Google Sign In failed")}
+               useOneTap
+               theme="filled_black"
+               shape="pill"
+               width="100%"
+            />
+          </div>
+
+          <div className="relative mb-8 text-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+            <span className="relative bg-white px-4 text-xs font-black text-slate-300 uppercase tracking-widest">or continue with email</span>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">

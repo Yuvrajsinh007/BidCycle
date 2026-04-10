@@ -162,10 +162,50 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (credential) => {
+    try {
+      const response = await api.post('/auth/google-login', { credential });
+      
+      // If it's a new user, return early so frontend can ask for Role
+      if (response.data.isNewUser) {
+        return { success: true, isNewUser: true, profile: response.data.profile };
+      }
+
+      const { token, ...userData } = response.data;
+      localStorage.setItem('token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(userData);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Google login failed',
+      };
+    }
+  };
+
+  const googleSignup = async (credential, role) => {
+    try {
+      const response = await api.post('/auth/google-signup', { credential, role });
+      const { token, ...userData } = response.data;
+      localStorage.setItem('token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(userData);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Google signup failed',
+      };
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
+    googleLogin,
+    googleSignup,
     register,
     logout,
     forgotPassword,

@@ -3,6 +3,8 @@ const router = express.Router();
 const { 
   register, 
   login, 
+  googleLogin,
+  googleSignup,
   getMe, 
   updateProfile, 
   changePassword, 
@@ -20,6 +22,8 @@ const upload = require('../middleware/upload');
 // Public routes
 router.post('/register', register);
 router.post('/login', login);
+router.post('/google-login', googleLogin);
+router.post('/google-signup', googleSignup);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', forgotPassword);
