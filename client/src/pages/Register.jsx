@@ -219,7 +219,7 @@ const Register = () => {
             </div>
           )}
 
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <GoogleLogin
                onSuccess={handleGoogleSuccess}
                onError={() => setError("Google Sign In failed")}
@@ -233,18 +233,18 @@ const Register = () => {
           <div className="relative mb-8 text-center">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
             <span className="relative bg-white px-4 text-xs font-black text-slate-300 uppercase tracking-widest">or register with email</span>
-          </div>
+          </div> */}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <InputField label="Full Name" icon={User} name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputField label="Email Address" icon={Mail} type="email" name="email" placeholder="name@company.com" value={formData.email} onChange={handleChange} required />
-              <InputField label="Phone Number" icon={Phone} type="tel" name="phone" placeholder="+1 (555) 000-0000" value={formData.phone} onChange={handleChange} required />
+              <InputField label="Email Address" icon={Mail} type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+              <InputField label="Phone Number" icon={Phone} type="tel" name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-               <InputField label="Address" icon={MapPin} name="address" placeholder="123 Main St, NY" value={formData.address} onChange={handleChange} required />
+               <InputField label="Address" icon={MapPin} name="address" placeholder="Gujarat, India" value={formData.address} onChange={handleChange} required />
                <div>
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Account Type</label>
                   <select

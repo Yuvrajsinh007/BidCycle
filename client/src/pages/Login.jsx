@@ -216,7 +216,7 @@ const Login = () => {
             </div>
           )}
 
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <GoogleLogin
                onSuccess={handleGoogleSuccess}
                onError={() => setError("Google Sign In failed")}
@@ -230,7 +230,7 @@ const Login = () => {
           <div className="relative mb-8 text-center">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
             <span className="relative bg-white px-4 text-xs font-black text-slate-300 uppercase tracking-widest">or continue with email</span>
-          </div>
+          </div> */}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">
@@ -248,7 +248,7 @@ const Login = () => {
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
-                    placeholder="name@company.com"
+                    placeholder="Email"
                   />
                 </div>
               </div>
