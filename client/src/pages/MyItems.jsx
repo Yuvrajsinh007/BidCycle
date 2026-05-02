@@ -151,6 +151,10 @@ const MyItems = () => {
                 isUpcoming = now < start;
               }
               
+              // NEW LOGIC: Check if it's safe to show the edit button
+              const hasBids = item.currentBid > item.basePrice; 
+              const isSafeToEdit = isDirect || isUpcoming || !hasBids; 
+              
               return (
                 <div key={item._id} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all flex flex-col group">
                   <div className="relative h-48 bg-slate-100 overflow-hidden">
@@ -195,8 +199,14 @@ const MyItems = () => {
 
                         <div className="grid grid-cols-2 gap-2">
                            <Link to={`/item/${item._id}`} className="flex justify-center items-center gap-1 py-2 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100"><Eye className="w-4 h-4"/> View</Link>
-                           {!isEnded ? <Link to={`/edit-item/${item._id}`} className="flex justify-center items-center gap-1 py-2 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100"><Edit className="w-4 h-4"/> Edit</Link>
-                            : <Link to={`/item/${item._id}`} className="flex justify-center items-center gap-1 py-2 bg-brand-50 text-brand-600 font-bold rounded-xl hover:bg-brand-100"><Gavel className="w-4 h-4"/> Bids</Link>}
+                           
+                           {/* UPDATED EDIT BUTTON LOGIC */}
+                           {!isEnded && isSafeToEdit ? (
+                             <Link to={`/edit-item/${item._id}`} className="flex justify-center items-center gap-1 py-2 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100"><Edit className="w-4 h-4"/> Edit</Link>
+                           ) : (
+                             <Link to={`/item/${item._id}`} className="flex justify-center items-center gap-1 py-2 bg-brand-50 text-brand-600 font-bold rounded-xl hover:bg-brand-100"><Gavel className="w-4 h-4"/> Bids/Info</Link>
+                           )}
+                           
                            <button onClick={() => handleDelete(item._id)} className="col-span-2 py-2 text-sm font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors flex justify-center items-center gap-2"><Trash2 className="w-4 h-4"/> Delete Listing</button>
                         </div>
                     </div>

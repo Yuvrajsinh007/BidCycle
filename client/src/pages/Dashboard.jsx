@@ -115,7 +115,7 @@ const SellerDashboard = ({ user }) => {
                                   </span>
                               </td>
                               <td className="px-6 py-4 font-black text-slate-900">
-                                ₹{item.currentBid || item.basePrice}
+                                ₹{item.currentBid || item.price || item.basePrice}
                               </td>
                               <td className="px-6 py-4 text-slate-500 text-sm font-medium">
                                   {new Date(item.createdAt).toLocaleDateString()}

@@ -113,7 +113,7 @@ const AuctionCard = ({ item }) => {
               </div>
             </div>
             <div className="text-right flex flex-col justify-end items-end h-full">
-              {isDirect ? (
+              {isDirect ? ( 
                 <span className={`text-sm font-bold ${item.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                   {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
                 </span>

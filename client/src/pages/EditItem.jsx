@@ -9,7 +9,10 @@ const EditItem = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [formData, setFormData] = useState({ title: "", description: "", category: "", basePrice: "", auctionDuration: "24" });
+  const [formData, setFormData] = useState({ 
+    title: "", description: "", category: "", basePrice: "", 
+    price: "", stock: "1", auctionDuration: "24", listingType: "auction" 
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -24,7 +27,16 @@ const EditItem = () => {
     (async () => {
       try {
         const { data } = await api.get(`/items/${id}`);
-        setFormData({ title: data.title, description: data.description, category: data.category, basePrice: data.basePrice, auctionDuration: data.auctionDuration || 24 });
+        setFormData({ 
+          title: data.title, 
+          description: data.description, 
+          category: data.category, 
+          basePrice: data.basePrice || "", 
+          price: data.price || "", 
+          stock: data.stock || "1", 
+          auctionDuration: data.auctionDuration || "24",
+          listingType: data.listingType || "auction"
+        });
         setExistingImages(data.images || []);
       } catch (err) {
         setError("Failed to fetch item details.");
@@ -59,7 +71,7 @@ const EditItem = () => {
       if (newImageFiles.length > 0) {
         const idf = new FormData();
         newImageFiles.forEach(f => idf.append("images", f));
-        await api.post(`/seller/items/${id}/images`, idf, { headers: { "Content-Type": undefined } });
+        await api.post(`/seller/items/${id}/images`, idf, { headers: { "Content-Type": "multipart/form-data" } });
       }
       navigate("/my-items");
     } catch (err) {
@@ -133,9 +145,27 @@ const EditItem = () => {
            </div>
 
            <div className="lg:col-span-4 space-y-6">
+              
               <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 p-8">
-                 <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-green-50 rounded-xl"><IndianRupee  className="w-6 h-6 text-green-600" /></div><h2 className="text-xl font-black">Base Price</h2></div>
-                 <input type="number" name="basePrice" value={formData.basePrice} onChange={handleChange} min="0" step="0.01" className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl text-center focus:outline-none focus:border-brand-500" />
+                 <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-green-50 rounded-xl"><IndianRupee  className="w-6 h-6 text-green-600" /></div><h2 className="text-xl font-black">Pricing Details</h2></div>
+                 
+                 {formData.listingType === 'direct' ? (
+                   <div className="space-y-4">
+                     <div>
+                       <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Direct Sale Price</label>
+                       <input type="number" name="price" value={formData.price} onChange={handleChange} min="0" step="0.01" className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl focus:outline-none focus:border-brand-500" />
+                     </div>
+                     <div>
+                       <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Stock Quantity</label>
+                       <input type="number" name="stock" value={formData.stock} onChange={handleChange} min="0" className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl focus:outline-none focus:border-brand-500" />
+                     </div>
+                   </div>
+                 ) : (
+                   <div>
+                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Auction Base Price</label>
+                     <input type="number" name="basePrice" value={formData.basePrice} onChange={handleChange} min="0" step="0.01" className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl focus:outline-none focus:border-brand-500" />
+                   </div>
+                 )}
               </div>
 
               <button type="submit" disabled={saving} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black hover:bg-slate-800 shadow-xl shadow-slate-900/10 active:scale-[0.98] flex justify-center items-center gap-2">

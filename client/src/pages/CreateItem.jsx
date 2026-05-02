@@ -94,7 +94,7 @@ const CreateItem = () => {
 
       imageFiles.forEach((file) => data.append("images", file));
 
-      await api.post("/seller/items", data, { headers: { "Content-Type": undefined } });
+      await api.post("/seller/items", data, { headers: { "Content-Type": "multipart/form-data" } });
       navigate("/my-items");
     } catch (error) {
       setError(error.message || error.response?.data?.message || "Failed to create item");
@@ -263,7 +263,7 @@ const CreateItem = () => {
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><span className="text-slate-400 font-bold">₹</span></div>
                         <input type="number" name="price" value={formData.price} onChange={handleChange} required min="1" step="0.01" className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-900 font-black text-xl placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition-all" placeholder="0.00" />
-                      </div>
+                      </div>0
                       <p className="text-xs font-semibold text-slate-500 mt-2">Buyers pay this exact amount.</p>
                     </div>
                     <div>

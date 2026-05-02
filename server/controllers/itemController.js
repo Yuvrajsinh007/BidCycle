@@ -373,37 +373,49 @@ exports.getMyItems = async (req, res) => {
 };
 
 exports.editItem = async (req, res) => {
-    try {
-      const item = await Item.findById(req.params.id);
-      if (!item) return res.status(404).json({ message: 'Item not found.' });
-      if (item.seller.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Forbidden.' });
-      
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found.' });
+    if (item.seller.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Forbidden.' });
+    
+    // SECURITY: Edit Restrictions based on Listing Type
+    if (item.listingType === 'auction') {
       const bidCount = await Bid.countDocuments({ item: item._id });
-      if (bidCount > 0) return res.status(400).json({ message: 'Cannot edit item with bids.' });
-      if (item.endTime <= new Date()) return res.status(400).json({ message: 'Cannot edit ended auction.' });
-      
-      const { title, description, category, images, basePrice, auctionDuration } = req.body;
-      
-      if (title) item.title = title;
-      if (description) item.description = description;
-      if (category) item.category = category;
-      if (images) item.images = images;
+      if (bidCount > 0) return res.status(400).json({ message: 'Cannot edit an auction that already has bids.' });
+      if (item.endTime && item.endTime <= new Date()) return res.status(400).json({ message: 'Cannot edit an ended auction.' });
+    }
+    // Direct sale items skip the restriction above and can be edited anytime!
+    
+    const { title, description, category, images, basePrice, price, stock, auctionDuration } = req.body;
+    
+    // Update universal fields
+    if (title) item.title = title;
+    if (description) item.description = description;
+    if (category) item.category = category;
+    if (images) item.images = images; // Keeps the existing images that weren't deleted
+    
+    // Update specific fields based on listing type
+    if (item.listingType === 'direct') {
+      if (price !== undefined && price >= 0) item.price = price;
+      if (stock !== undefined && stock >= 0) item.stock = stock;
+    } else {
       if (basePrice && basePrice > 0) {
         item.basePrice = basePrice;
-        item.currentBid = basePrice;
+        item.currentBid = basePrice; 
       }
       if (auctionDuration && auctionDuration > 0 && auctionDuration <= 720) {
         item.auctionDuration = auctionDuration;
         item.endTime = new Date(Date.now() + auctionDuration * 60 * 60 * 1000);
       }
-      
-      await item.save();
-      await item.populate('seller', 'name email');
-      res.json(item);
-    } catch (error) {
-      console.error('Edit item error:', error);
-      res.status(500).json({ message: 'Server error.' });
     }
+    
+    await item.save();
+    await item.populate('seller', 'name email');
+    res.json(item);
+  } catch (error) {
+    console.error('Edit item error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
 };
   
 exports.deleteItem = async (req, res) => {
@@ -448,24 +460,27 @@ exports.getItemBids = async (req, res) => {
 }; 
   
 exports.uploadImages = async (req, res) => {
-      try {
-        const item = await Item.findById(req.params.id);
-        if (!item) return res.status(404).json({ message: 'Item not found.' });
-        if (item.seller.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Forbidden.' });
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found.' });
+    if (item.seller.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Forbidden.' });
+
+    // The files are already parsed by the router middleware!
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: 'No new images were uploaded.' });
+    }
     
-        upload.array('images', 5)(req, res, async (err) => {
-          if (err) return res.status(400).json({ message: err.message });
-          if (!req.files || req.files.length === 0) return res.status(400).json({ message: 'No images uploaded.' });
-          
-          const imageUrls = req.files.map(file => file.path);
-          item.images = [...item.images, ...imageUrls];
-          await item.save();
-          res.json({ message: 'Images uploaded successfully.', images: item.images });
-        });
-      } catch (error) {
-        console.error('Upload images error:', error);
-        res.status(500).json({ message: 'Server error.' });
-      }
+    const imageUrls = req.files.map(file => file.path);
+    
+    // Append new images to the existing ones
+    item.images = [...item.images, ...imageUrls];
+    await item.save();
+    
+    res.json({ message: 'Images uploaded successfully.', images: item.images });
+  } catch (error) {
+    console.error('Upload images error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
 };
 
 
